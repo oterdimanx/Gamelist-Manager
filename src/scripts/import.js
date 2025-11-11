@@ -11,18 +11,22 @@ const parseESDate = (dateStr) => {
   const hour = dateStr.slice(9, 11);
   const minute = dateStr.slice(11, 13);
   const second = dateStr.slice(13, 15);
-  // Treat as UTC explicitly
   const parsedDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second)));
   return isNaN(parsedDate) ? undefined : parsedDate;
 };
 
 const importGames = async (system, filePath, ignoreFields = []) => {
   await connectDB();
+  console.time('parseXML');
   const games = parseXML(filePath);
+  console.timeEnd('parseXML');
 
   if (!Array.isArray(games)) {
     throw new Error('No games found in XML or invalid XML structure');
   }
+
+  console.log(`Importing ${games.length} games for ${system}`);
+  const bulkOps = [];
 
   for (const gameData of games) {
     const ratingValue = gameData.rating ? parseFloat(gameData.rating) : undefined;
@@ -50,13 +54,24 @@ const importGames = async (system, filePath, ignoreFields = []) => {
       ...( gameData['@timestamp'] && { timestamp: parseInt(gameData['@timestamp'], 10) } ),
     };
 
-    await Game.findOneAndUpdate(
-      { system, path: gameDoc.path },
-      { $set: gameDoc, $push: { sources: { file: filePath, importedFields: Object.keys(gameDoc).filter(k => k !== 'system' && k !== 'path') } } },
-      { upsert: true, new: true }
-    );
+    bulkOps.push({
+      updateOne: {
+        filter: { system, path: gameDoc.path },
+        update: { 
+          $set: gameDoc, 
+          $push: { sources: { file: filePath, importedFields: Object.keys(gameDoc).filter(k => k !== 'system' && k !== 'path') } }
+        },
+        upsert: true
+      }
+    });
   }
-  console.log(`Imported from ${filePath} for ${system}`);
+
+  console.time('bulkWrite');
+  if (bulkOps.length > 0) {
+    await Game.bulkWrite(bulkOps);
+  }
+  console.timeEnd('bulkWrite');
+  console.log(`Imported ${bulkOps.length} games from ${filePath} for ${system}`);
 };
 
 module.exports = { importGames, parseESDate };

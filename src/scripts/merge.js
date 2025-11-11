@@ -2,8 +2,18 @@ const connectDB = require('../utils/db');
 const Game = require('../models/Game');
 const { parseXML } = require('../utils/xmlParser');
 const parseESDate = require('./import').parseESDate;
+const stringSimilarity = require('string-similarity');
 
-const mergeGames = async (system, completeFilePath, ignoreFields = []) => {
+const normalizeName = (name) => {
+  if (typeof name !== 'string') return '';
+  return name.replace(/\s*\(.*?\)\s*/g, '') // Remove parentheses like (USA, Europe), (Rev A), (J) [!]
+    .replace(/[!+]/g, '') // Remove [!], [+]
+    .replace(/\s*(REV\s*\d+|JUE|U|W|\[h\d+\])/gi, '') // Remove common clone suffixes
+    .trim()
+    .toLowerCase();
+};
+
+const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode = false) => {
   await connectDB();
   const completeGames = parseXML(completeFilePath);
 
@@ -61,27 +71,39 @@ const mergeGames = async (system, completeFilePath, ignoreFields = []) => {
       ...( completeGame['@timestamp'] && { timestamp: parseInt(completeGame['@timestamp'], 10) } ),
     };
 
-    const existing = await Game.findOne({
-      system,
-      name: { $regex: `^${completeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
-    });
-    if (existing) {
-      const updates = {};
-      for (const [key, value] of Object.entries(updateDoc)) {
-        if (existing[key] === undefined || existing[key] === null) {
-          updates[key] = value;
-        }
+    const existingGames = await Game.find({ system });
+    let matchedVariants = [];
+    let maxSimilarity = 0;
+
+    for (const game of existingGames) {
+      const normalizedExistingName = normalizeName(game.name);
+      const similarity = stringSimilarity.compareTwoStrings(normalizeName(completeName), normalizedExistingName);
+      if (similarity >= 0.85) {
+        matchedVariants.push(game);
+        maxSimilarity = Math.max(maxSimilarity, similarity);
       }
-      if (Object.keys(updates).length > 0) {
-        await Game.updateOne(
-          { _id: existing._id },
-          { $set: updates, $push: { sources: { file: completeFilePath, importedFields: Object.keys(updates) } } }
-        );
-        console.log(`Merged ${completeName}: Added fields ${Object.keys(updates).join(', ')}`);
-        updatedCount++;
-      } else {
-        console.log(`Skipped ${completeName}: No new fields to add`);
-        skippedCount++;
+    }
+
+    if (matchedVariants.length > 0) {
+      console.log(`Matched ${matchedVariants.length} variants for ${completeName} (max similarity: ${maxSimilarity})`);
+      for (const existing of matchedVariants) {
+        const updates = {};
+        for (const [key, value] of Object.entries(updateDoc)) {
+          if (existing[key] === undefined || existing[key] === null) {
+            updates[key] = value;
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          await Game.updateOne(
+            { _id: existing._id },
+            { $set: updates, $push: { sources: { file: completeFilePath, importedFields: Object.keys(updates) } } }
+          );
+          console.log(`Merged variant ${existing.name}: Added fields ${Object.keys(updates).join(', ')}`);
+          updatedCount++;
+        } else {
+          console.log(`Skipped variant ${existing.name}: No new fields to add`);
+          skippedCount++;
+        }
       }
     } else {
       console.log(`No match for ${completeName} in DB`);
