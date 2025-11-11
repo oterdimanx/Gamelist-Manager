@@ -1,0 +1,27 @@
+{
+  "name": "gamelist-manager",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "import": "node src/scripts/import.js",
+    "export": "node src/scripts/export.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "commander": "^14.0.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "fast-xml-parser": "^5.3.1",
+    "mongoose": "^8.19.3",
+    "multer": "^2.0.2",
+    "netlify-lambda": "^0.4.0",
+    "serverless-http": "^4.0.0",
+    "xml2js": "^0.6.2"
+  }
+}

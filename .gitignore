@@ -1,0 +1,27 @@
+# Node.js
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+
+# Local data
+roms/
+
+# Netlify Functions temp files
+.netlify/
+functions/node_modules/
+
+# Temporary files
+/tmp/*
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# Deno (if present)
+deno.lock
+
+# macOS
+.DS_Store

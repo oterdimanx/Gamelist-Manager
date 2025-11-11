@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gamelist Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Gamelist Manager</h1>
+  <form id="form">
+    <label>System:</label>
+    <select id="system">
+      <option value="mame">MAME</option>
+      <option value="megadrive">Megadrive</option>
+      <!-- Add others -->
+    </select>
+    <br>
+    <label>Ignore Fields (comma-separated):</label>
+    <input type="text" id="ignore" placeholder="path,lastplayed">
+    <br>
+    <label>Initial XML:</label>
+    <input type="file" id="initialFile">
+    <button type="button" onclick="importInitial()">Import Initial</button>
+    <br>
+    <label>Complete XML:</label>
+    <input type="file" id="completeFile">
+    <button type="button" onclick="mergeComplete()">Merge Complete</button>
+    <br>
+    <button type="button" onclick="exportMerged()">Export & Download</button>
+  </form>
+  <div id="status"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
