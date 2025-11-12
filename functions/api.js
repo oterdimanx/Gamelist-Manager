@@ -46,7 +46,7 @@ app.post('/api/import-initial', upload.single('initialFile'), async (req, res) =
     const system = req.body.system;
     if (!system) throw new Error('System is required');
     let ignoreFields = req.body.ignore ? req.body.ignore.split(',').map(f => f.trim()) : [];
-    if (system === 'gamegear' || system === 'snes') {
+    if (system === 'gamegear' || system === 'snes' || system === 'sms' || system === 'pce' || system === 'n64') {
       ignoreFields.push('ratio', 'region');
     }
     if (!req.file) throw new Error('No file uploaded');
@@ -72,7 +72,7 @@ app.post('/api/merge-complete', upload.single('completeFile'), async (req, res) 
     const system = req.body.system;
     if (!system) throw new Error('System is required');
     let ignoreFields = req.body.ignore ? req.body.ignore.split(',').map(f => f.trim()) : [];
-    if (system === 'gamegear' || system === 'snes') {
+    if (system === 'gamegear' || system === 'snes' || system === 'sms' || system === 'pce' || system === 'n64') {
       ignoreFields.push('ratio', 'region');
     }
     if (!req.file) throw new Error('No file uploaded');
@@ -92,7 +92,7 @@ app.post('/api/merge-complete', upload.single('completeFile'), async (req, res) 
   }
 });
 
-app.post('/api/export', async (req, res) => {
+app.post('/api/export', upload.none(), async (req, res) => {
   try {
     console.log('Processing /api/export', req.body);
     const system = req.body.system;

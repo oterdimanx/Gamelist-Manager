@@ -15,6 +15,9 @@ const normalizeName = (name) => {
 
 const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode = false, start = 0, end) => {
   await connectDB();
+  // Add index for faster fetches (run once)
+  Game.createIndexes({ system: 1, name: 1 });
+
   console.time('parseXML');
   const completeGames = parseXML(completeFilePath);
   console.timeEnd('parseXML');

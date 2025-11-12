@@ -34,17 +34,37 @@ async function postAPI(url, formData, action) {
       try {
         console.log('Response:', xhr.status, xhr.response);
         if (xhr.status >= 200 && xhr.status < 300) {
-          const data = xhr.response ? xhr.response : { error: 'Empty response' };
-          progressBar.style.width = '100%';
-          statusText.textContent = data.message || data.error;
-          resolve(data);
+          if (action === 'Export') {
+            // Handle file download
+            const blob = xhr.response;
+            const contentDisposition = xhr.getResponseHeader('Content-Disposition');
+            const filename = contentDisposition
+              ? contentDisposition.match(/filename="(.+)"/)?.[1] || `generated-${formData.get('system')}.xml`
+              : `generated-${formData.get('system')}.xml`;
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            progressBar.style.width = '100%';
+            statusText.textContent = `Downloaded ${filename}`;
+            resolve({ success: true, message: `Downloaded ${filename}` });
+          } else {
+            const data = xhr.response ? xhr.response : { error: 'Empty response' };
+            progressBar.style.width = '100%';
+            statusText.textContent = data.message || data.error;
+            resolve(data);
+          }
         } else {
           const errorMsg = xhr.status === 500 ? 
             `${action} timed out, but may have completed. Check MongoDB.` : 
             `HTTP ${xhr.status}: ${xhr.status}`;
           progressBar.style.width = '100%';
           statusText.textContent = errorMsg;
-          resolve({ error: errorMsg }); // Resolve to continue chunking
+          resolve({ error: errorMsg });
         }
       } catch (err) {
         console.error('Request failed:', err, { status: xhr.status, response: xhr.response });
@@ -62,7 +82,8 @@ async function postAPI(url, formData, action) {
       reject(new Error('Network error'));
     };
 
-    xhr.responseType = 'json';
+    // Set responseType based on action
+    xhr.responseType = action === 'Export' ? 'blob' : 'json';
     xhr.send(formData);
   });
 }
@@ -106,7 +127,7 @@ async function importInitial() {
       console.warn(`Chunk ${start}-${end} had error: ${response.error}`);
     }
     processed += (end - start);
-    progressBar.style.width = `${(processed / totalGames * 100).toFixed(0)}%`;
+    document.querySelector('.progress-bar').style.width = `${(processed / totalGames * 100).toFixed(0)}%`;
     start += CHUNK_SIZE;
   }
 
@@ -123,7 +144,7 @@ async function mergeComplete() {
     return;
   }
 
-  const CHUNK_SIZE = 250; // Smaller to avoid timeouts
+  const CHUNK_SIZE = 10000;
   const totalGames = await getTotalGames(system, completeFile, 'completeFile');
   let start = 0;
   let processed = 0;
@@ -143,7 +164,7 @@ async function mergeComplete() {
       console.warn(`Chunk ${start}-${end} had error: ${response.error}`);
     }
     processed += (end - start);
-    progressBar.style.width = `${(processed / totalGames * 100).toFixed(0)}%`;
+    document.querySelector('.progress-bar').style.width = `${(processed / totalGames * 100).toFixed(0)}%`;
     start += CHUNK_SIZE;
   }
 
@@ -153,11 +174,16 @@ async function mergeComplete() {
 
 async function exportMerged() {
   const system = document.getElementById('system').value;
+  console.log('System element:', document.getElementById('system')); // Debug
+  console.log('Exporting system:', system);
   if (!system) {
     document.getElementById('status-text').textContent = 'Please select system';
     return;
   }
   const formData = new FormData();
   formData.append('system', system);
+  for (let [key, value] of formData.entries()) {
+    console.log(`FormData: ${key}=${value}`);
+  }
   await postAPI('/api/export', formData, 'Export');
 }
