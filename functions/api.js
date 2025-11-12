@@ -6,6 +6,7 @@ const fs = require('fs');
 const { importGames } = require('../src/scripts/import');
 const mergeGames = require('../src/scripts/merge');
 const exportGames = require('../src/scripts/export');
+const { parseXML } = require('../src/utils/xmlParser');
 
 const app = express();
 app.use(bodyParser.json());
@@ -19,6 +20,23 @@ const upload = multer({
 app.use((req, res, next) => {
   console.log(`Received ${req.method} request to ${req.url}`);
   next();
+});
+
+app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name: 'completeFile' }]), async (req, res) => {
+  try {
+    console.log('Processing /api/get-total-games', req.body, req.files);
+    const system = req.body.system;
+    if (!system) throw new Error('System is required');
+    const file = req.files.initialFile?.[0] || req.files.completeFile?.[0];
+    if (!file) throw new Error('No file uploaded');
+    const games = parseXML(file.path);
+    if (!Array.isArray(games)) throw new Error('Invalid XML structure');
+    fs.unlinkSync(file.path);
+    res.json({ success: true, totalGames: games.length });
+  } catch (err) {
+    console.error('Get total games error:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/import-initial', upload.single('initialFile'), async (req, res) => {
@@ -59,7 +77,7 @@ app.post('/api/merge-complete', upload.single('completeFile'), async (req, res) 
     if (!req.file) throw new Error('No file uploaded');
     const start = parseInt(req.body.start) || 0;
     const end = parseInt(req.body.end) || undefined;
-    await mergeGames(system, req.file.path, ignoreFields, start, end);
+    await mergeGames(system, req.file.path, ignoreFields, false, start, end);
     fs.unlinkSync(req.file.path);
     res.json({ 
       success: true, 

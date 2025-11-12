@@ -30,13 +30,13 @@ const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode
   let skippedCount = 0;
   let noMatchCount = 0;
 
-  const BATCH_SIZE = 100; // Smaller for fuzzy matching
+  const BATCH_SIZE = 100;
   for (let i = 0; i < slicedGames.length; i += BATCH_SIZE) {
     const batch = slicedGames.slice(i, i + BATCH_SIZE);
     for (const completeGame of batch) {
       const completeName = typeof completeGame.name === 'string' && completeGame.name ? completeGame.name.trim() : null;
       if (!completeName) {
-        console.log(`Skipping invalid game in complete XML: invalid name`, completeGame);
+        console.log(`Skipping invalid game: invalid name`, completeGame);
         skippedCount++;
         continue;
       }
@@ -117,10 +117,10 @@ const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode
       }
     }
     const progress = Math.min(((i + BATCH_SIZE) / slicedGames.length * 100).toFixed(0), 100);
-    console.log(`Merged ${i + batch.length}/${slicedGames.length} games (${progress}%)`);
+    console.log(`Processed ${i + batch.length}/${slicedGames.length} games (${progress}%)`);
   }
 
   console.log(`Merged ${updatedCount} games, skipped ${skippedCount}, no match for ${noMatchCount} for ${system}`);
 };
 
-module.exports = { mergeGames };
+module.exports = mergeGames

@@ -67,6 +67,15 @@ async function postAPI(url, formData, action) {
   });
 }
 
+async function getTotalGames(system, file, fileKey) {
+  const formData = new FormData();
+  formData.append('system', system);
+  formData.append(fileKey, file);
+  const response = await postAPI('/api/get-total-games', formData, 'Get Total Games');
+  if (response.error) throw new Error(response.error);
+  return response.totalGames;
+}
+
 async function importInitial() {
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
@@ -76,8 +85,8 @@ async function importInitial() {
     return;
   }
 
-  const CHUNK_SIZE = 2000; // Import 2,000 games per request
-  const totalGames = 6662; // Hardcoded for SNES; ideally get from server
+  const CHUNK_SIZE = 2000;
+  const totalGames = await getTotalGames(system, initialFile, 'initialFile');
   let start = 0;
 
   while (start < totalGames) {
@@ -107,8 +116,8 @@ async function mergeComplete() {
     return;
   }
 
-  const CHUNK_SIZE = 1000; // Smaller for merge due to fuzzy matching
-  const totalGames = 6662; // Adjust for snes-complete.xml
+  const CHUNK_SIZE = 500; // Smaller for merge due to fuzzy matching
+  const totalGames = await getTotalGames(system, completeFile, 'completeFile');
   let start = 0;
 
   while (start < totalGames) {
