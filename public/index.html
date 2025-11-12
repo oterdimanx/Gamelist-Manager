@@ -53,7 +53,6 @@
       </div>
     </main>
   </div>
-  <audio id="clickSound" src="https://freesound.org/data/previews/171/171671_2435888-lq.mp3"></audio>
   <script>
     function updateIgnores() {
       const system = document.getElementById('system').value;
@@ -67,14 +66,6 @@
       }
     }
     updateIgnores();
-
-    document.querySelectorAll('.btn').forEach(btn => {
-      btn.addEventListener('mouseenter', () => {
-        const sound = document.getElementById('clickSound');
-        sound.currentTime = 0;
-        sound.play();
-      });
-    });
   </script>
   <script src="app.js"></script>
 </body>

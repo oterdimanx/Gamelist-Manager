@@ -54,4 +54,35 @@ program
     }
   });
 
+  program
+  .command('clear-db')
+  .description('Clear all games from MongoDB')
+  .action(async () => {
+    try {
+      await connectDB();
+      const deleteResult = await Game.deleteMany({});
+      console.log(`Deleted ${deleteResult.deletedCount} games`);
+      process.exit(0);
+    } catch (err) {
+      console.error('Clear failed:', err.message);
+      process.exit(1);
+    }
+  });
+
+  program
+  .command('clear-system')
+  .description('Clear games for a system from MongoDB')
+  .requiredOption('-s, --system <system>', 'System name (e.g., snes)')
+  .action(async ({ system }) => {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI);
+      const deleteResult = await Game.deleteMany({ system });
+      console.log(`Deleted ${deleteResult.deletedCount} games for ${system}`);
+      process.exit(0);
+    } catch (err) {
+      console.error('Clear failed:', err.message);
+      process.exit(1);
+    }
+  });
+
 program.parse(process.argv);

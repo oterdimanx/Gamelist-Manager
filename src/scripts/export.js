@@ -18,7 +18,7 @@ const formatESDate = (date) => {
 const exportGames = async (system, outputPath) => {
   await connectDB();
   const games = await Game.find({ system }).lean();
-
+//console.log({ system })
   if (games.length === 0) {
     throw new Error(`No games found for system "${system}"`);
   }

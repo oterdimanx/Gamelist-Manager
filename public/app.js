@@ -3,7 +3,7 @@ async function postAPI(url, formData, action) {
   const progress = document.getElementById('progress');
   const progressBar = document.querySelector('.progress-bar');
 
-  // Reset UI
+  console.log(`Sending ${action} to ${url}`);
   statusText.textContent = `Starting ${action}...`;
   progress.classList.remove('hidden');
   progressBar.style.width = '0%';
@@ -11,7 +11,6 @@ async function postAPI(url, formData, action) {
   const xhr = new XMLHttpRequest();
   xhr.open('POST', url);
 
-  // Upload progress
   xhr.upload.onprogress = (e) => {
     if (e.lengthComputable) {
       const percent = (e.loaded / e.total * 100).toFixed(0);
@@ -20,39 +19,52 @@ async function postAPI(url, formData, action) {
     }
   };
 
-  // Simulate processing progress
   let processingPercent = 0;
   const processingInterval = setInterval(() => {
     if (processingPercent < 90) {
-      processingPercent += 10; // Gradual increase
+      processingPercent += 10;
       statusText.textContent = `Processing ${action}: ${processingPercent}%`;
       progressBar.style.width = `${processingPercent}%`;
     }
   }, 500);
 
-  xhr.onload = async () => {
-    clearInterval(processingInterval);
-    try {
-      const data = await xhr.response.json();
-      progressBar.style.width = '100%';
-      statusText.textContent = data.message || data.error;
-      setTimeout(() => {
+  return new Promise((resolve, reject) => {
+    xhr.onload = async () => {
+      clearInterval(processingInterval);
+      try {
+        console.log('Response:', xhr.status, xhr.response);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = xhr.response ? xhr.response : { error: 'Empty response' };
+          progressBar.style.width = '100%';
+          statusText.textContent = data.message || data.error;
+          resolve(data);
+        } else {
+          const errorMsg = xhr.status === 500 ? 
+            `${action} timed out, but may have completed. Check MongoDB.` : 
+            `HTTP ${xhr.status}: ${xhr.status}`;
+          progressBar.style.width = '100%';
+          statusText.textContent = errorMsg;
+          resolve({ error: errorMsg });
+        }
+      } catch (err) {
+        console.error('Request failed:', err, { status: xhr.status, response: xhr.response });
+        statusText.textContent = `Error: ${err.message}`;
         progress.classList.add('hidden');
-      }, 1000);
-    } catch (err) {
-      statusText.textContent = `Error: ${err.message}`;
+        reject(err);
+      }
+    };
+
+    xhr.onerror = () => {
+      clearInterval(processingInterval);
+      console.error('Network error:', xhr.status);
+      statusText.textContent = `${action} failed: Network error`;
       progress.classList.add('hidden');
-    }
-  };
+      reject(new Error('Network error'));
+    };
 
-  xhr.onerror = () => {
-    clearInterval(processingInterval);
-    statusText.textContent = `${action} failed`;
-    progress.classList.add('hidden');
-  };
-
-  xhr.responseType = 'json';
-  xhr.send(formData);
+    xhr.responseType = 'json';
+    xhr.send(formData);
+  });
 }
 
 async function importInitial() {
@@ -63,11 +75,27 @@ async function importInitial() {
     document.getElementById('status-text').textContent = 'Please select system and file';
     return;
   }
-  const formData = new FormData();
-  formData.append('system', system);
-  formData.append('ignore', ignore);
-  formData.append('initialFile', initialFile);
-  await postAPI('/.netlify/functions/api/import-initial', formData, 'Import');
+
+  const CHUNK_SIZE = 2000; // Import 2,000 games per request
+  const totalGames = 6662; // Hardcoded for SNES; ideally get from server
+  let start = 0;
+
+  while (start < totalGames) {
+    const end = Math.min(start + CHUNK_SIZE, totalGames);
+    const formData = new FormData();
+    formData.append('system', system);
+    formData.append('ignore', ignore);
+    formData.append('initialFile', initialFile);
+    formData.append('start', start);
+    formData.append('end', end);
+
+    document.getElementById('status-text').textContent = `Importing games ${start}-${end} for ${system}...`;
+    await postAPI('/api/import-initial', formData, `Import ${start}-${end}`);
+    start += CHUNK_SIZE;
+  }
+
+  document.getElementById('status-text').textContent = `Initial import complete for ${system}`;
+  document.getElementById('progress').classList.add('hidden');
 }
 
 async function mergeComplete() {
@@ -78,11 +106,27 @@ async function mergeComplete() {
     document.getElementById('status-text').textContent = 'Please select system and file';
     return;
   }
-  const formData = new FormData();
-  formData.append('system', system);
-  formData.append('ignore', ignore);
-  formData.append('completeFile', completeFile);
-  await postAPI('/.netlify/functions/api/merge-complete', formData, 'Merge');
+
+  const CHUNK_SIZE = 1000; // Smaller for merge due to fuzzy matching
+  const totalGames = 6662; // Adjust for snes-complete.xml
+  let start = 0;
+
+  while (start < totalGames) {
+    const end = Math.min(start + CHUNK_SIZE, totalGames);
+    const formData = new FormData();
+    formData.append('system', system);
+    formData.append('ignore', ignore);
+    formData.append('completeFile', completeFile);
+    formData.append('start', start);
+    formData.append('end', end);
+
+    document.getElementById('status-text').textContent = `Merging games ${start}-${end} for ${system}...`;
+    await postAPI('/api/merge-complete', formData, `Merge ${start}-${end}`);
+    start += CHUNK_SIZE;
+  }
+
+  document.getElementById('status-text').textContent = `Merge complete for ${system}`;
+  document.getElementById('progress').classList.add('hidden');
 }
 
 async function exportMerged() {
@@ -93,5 +137,5 @@ async function exportMerged() {
   }
   const formData = new FormData();
   formData.append('system', system);
-  await postAPI('/.netlify/functions/api/export', formData, 'Export');
+  await postAPI('/api/export', formData, 'Export');
 }
