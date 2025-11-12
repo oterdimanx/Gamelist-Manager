@@ -29,6 +29,7 @@ app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name:
     if (!system) throw new Error('System is required');
     const file = req.files.initialFile?.[0] || req.files.completeFile?.[0];
     if (!file) throw new Error('No file uploaded');
+    console.log(`Parsing file: ${file.path}`);
     const games = parseXML(file.path);
     if (!Array.isArray(games)) throw new Error('Invalid XML structure');
     fs.unlinkSync(file.path);

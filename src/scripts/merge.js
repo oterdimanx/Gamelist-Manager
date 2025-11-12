@@ -1,14 +1,14 @@
 const connectDB = require('../utils/db');
 const Game = require('../models/Game');
 const { parseXML } = require('../utils/xmlParser');
-const { parseESDate } = require('./import');
+const parseESDate = require('./import').parseESDate;
 const stringSimilarity = require('string-similarity');
 
 const normalizeName = (name) => {
   if (typeof name !== 'string') return '';
-  return name.replace(/\s*\(.*?\)\s*/g, '')
-    .replace(/[!+]/g, '')
-    .replace(/\s*(REV\s*\d+|JUE|U|W|\[h\d+\])/gi, '')
+  return name.replace(/\s*\(.*?\)\s*/g, '') // Remove parentheses like (USA, Europe), (Rev A), (J) [!]
+    .replace(/[!+]/g, '') // Remove [!], [+]
+    .replace(/\s*(REV\s*\d+|JUE|U|W|\[h\d+\])/gi, '') // Remove common clone suffixes
     .trim()
     .toLowerCase();
 };
@@ -26,17 +26,21 @@ const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode
   const slicedGames = completeGames.slice(start, end);
   console.log(`Merging ${slicedGames.length} games for ${system} (start: ${start}, end: ${end || completeGames.length})`);
 
+  console.time('fetch-existing');
+  const existingGames = await Game.find({ system });
+  console.timeEnd('fetch-existing');
+
   let updatedCount = 0;
   let skippedCount = 0;
   let noMatchCount = 0;
 
-  const BATCH_SIZE = 100;
+  const BATCH_SIZE = 50; // Smaller to avoid timeouts (test 100 if too slow)
   for (let i = 0; i < slicedGames.length; i += BATCH_SIZE) {
     const batch = slicedGames.slice(i, i + BATCH_SIZE);
     for (const completeGame of batch) {
       const completeName = typeof completeGame.name === 'string' && completeGame.name ? completeGame.name.trim() : null;
       if (!completeName) {
-        console.log(`Skipping invalid game: invalid name`, completeGame);
+        console.log(`Skipping invalid game in complete XML: invalid name`, completeGame);
         skippedCount++;
         continue;
       }
@@ -77,7 +81,6 @@ const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode
         ...( completeGame['@timestamp'] && { timestamp: parseInt(completeGame['@timestamp'], 10) } ),
       };
 
-      const existingGames = await Game.find({ system });
       let matchedVariants = [];
       let maxSimilarity = 0;
 
@@ -117,10 +120,10 @@ const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode
       }
     }
     const progress = Math.min(((i + BATCH_SIZE) / slicedGames.length * 100).toFixed(0), 100);
-    console.log(`Processed ${i + batch.length}/${slicedGames.length} games (${progress}%)`);
+    console.log(`Processed ${i + BATCH_SIZE}/${slicedGames.length} games (${progress}%)`);
   }
 
   console.log(`Merged ${updatedCount} games, skipped ${skippedCount}, no match for ${noMatchCount} for ${system}`);
 };
 
-module.exports = mergeGames
+module.exports = mergeGames;

@@ -44,7 +44,7 @@ async function postAPI(url, formData, action) {
             `HTTP ${xhr.status}: ${xhr.status}`;
           progressBar.style.width = '100%';
           statusText.textContent = errorMsg;
-          resolve({ error: errorMsg });
+          resolve({ error: errorMsg }); // Resolve to continue chunking
         }
       } catch (err) {
         console.error('Request failed:', err, { status: xhr.status, response: xhr.response });
@@ -73,6 +73,7 @@ async function getTotalGames(system, file, fileKey) {
   formData.append(fileKey, file);
   const response = await postAPI('/api/get-total-games', formData, 'Get Total Games');
   if (response.error) throw new Error(response.error);
+  console.log(`Total games for ${system} (${fileKey}): ${response.totalGames}`);
   return response.totalGames;
 }
 
@@ -88,6 +89,7 @@ async function importInitial() {
   const CHUNK_SIZE = 2000;
   const totalGames = await getTotalGames(system, initialFile, 'initialFile');
   let start = 0;
+  let processed = 0;
 
   while (start < totalGames) {
     const end = Math.min(start + CHUNK_SIZE, totalGames);
@@ -99,7 +101,12 @@ async function importInitial() {
     formData.append('end', end);
 
     document.getElementById('status-text').textContent = `Importing games ${start}-${end} for ${system}...`;
-    await postAPI('/api/import-initial', formData, `Import ${start}-${end}`);
+    const response = await postAPI('/api/import-initial', formData, `Import ${start}-${end}`);
+    if (response.error) {
+      console.warn(`Chunk ${start}-${end} had error: ${response.error}`);
+    }
+    processed += (end - start);
+    progressBar.style.width = `${(processed / totalGames * 100).toFixed(0)}%`;
     start += CHUNK_SIZE;
   }
 
@@ -116,9 +123,10 @@ async function mergeComplete() {
     return;
   }
 
-  const CHUNK_SIZE = 500; // Smaller for merge due to fuzzy matching
+  const CHUNK_SIZE = 250; // Smaller to avoid timeouts
   const totalGames = await getTotalGames(system, completeFile, 'completeFile');
   let start = 0;
+  let processed = 0;
 
   while (start < totalGames) {
     const end = Math.min(start + CHUNK_SIZE, totalGames);
@@ -130,7 +138,12 @@ async function mergeComplete() {
     formData.append('end', end);
 
     document.getElementById('status-text').textContent = `Merging games ${start}-${end} for ${system}...`;
-    await postAPI('/api/merge-complete', formData, `Merge ${start}-${end}`);
+    const response = await postAPI('/api/merge-complete', formData, `Merge ${start}-${end}`);
+    if (response.error) {
+      console.warn(`Chunk ${start}-${end} had error: ${response.error}`);
+    }
+    processed += (end - start);
+    progressBar.style.width = `${(processed / totalGames * 100).toFixed(0)}%`;
     start += CHUNK_SIZE;
   }
 
