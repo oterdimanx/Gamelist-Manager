@@ -2,34 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gamelist Manager</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Gamelist Manager</h1>
-  <form id="form">
-    <label>System:</label>
-    <select id="system">
-      <option value="mame">MAME</option>
-      <option value="megadrive">Megadrive</option>
-      <!-- Add others -->
-    </select>
-    <br>
-    <label>Ignore Fields (comma-separated):</label>
-    <input type="text" id="ignore" placeholder="path,lastplayed">
-    <br>
-    <label>Initial XML:</label>
-    <input type="file" id="initialFile">
-    <button type="button" onclick="importInitial()">Import Initial</button>
-    <br>
-    <label>Complete XML:</label>
-    <input type="file" id="completeFile">
-    <button type="button" onclick="mergeComplete()">Merge Complete</button>
-    <br>
-    <button type="button" onclick="exportMerged()">Export & Download</button>
-  </form>
-  <div id="status"></div>
+  <div class="scanlines"></div>
+  <div class="container">
+    <header>
+      <h1>Gamelist Manager</h1>
+      <p class="subtitle">Merge & Manage Your Retro Gamelists</p>
+    </header>
+    <main>
+      <div class="card">
+        <form id="form">
+          <div class="form-group">
+            <label for="system">System</label>
+            <select id="system" onchange="updateIgnores()">
+              <option value="mame">MAME</option>
+              <option value="megadrive">Megadrive/Genesis</option>
+              <option value="gamegear">Game Gear</option>
+              <option value="snes">Super Nintendo/Super Famicom</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="ignore">Ignore Fields (comma-separated)</label>
+            <input type="text" id="ignore" placeholder="path,lastplayed">
+          </div>
+          <div class="form-group">
+            <label for="initialFile">Initial XML <span class="icon icon-floppy"></span></label>
+            <input type="file" id="initialFile">
+            <button type="button" class="btn" onclick="importInitial()">Import Initial</button>
+          </div>
+          <div class="form-group">
+            <label for="completeFile">Complete XML <span class="icon icon-floppy"></span></label>
+            <input type="file" id="completeFile">
+            <button type="button" class="btn" onclick="mergeComplete()">Merge Complete</button>
+          </div>
+          <div class="form-group">
+            <button type="button" class="btn btn-export" onclick="exportMerged()">Export & Download <span class="icon icon-download"></span></button>
+          </div>
+        </form>
+        <div id="status" class="status">
+          <div id="progress" class="progress hidden">
+            <div class="progress-bar"></div>
+          </div>
+          <span id="status-text"></span>
+        </div>
+      </div>
+    </main>
+  </div>
+  <audio id="clickSound" src="https://freesound.org/data/previews/171/171671_2435888-lq.mp3"></audio>
+  <script>
+    function updateIgnores() {
+      const system = document.getElementById('system').value;
+      const ignoreInput = document.getElementById('ignore');
+      if (system === 'mame') {
+        ignoreInput.value = 'path,lastplayed,playcount,timeplayed';
+      } else if (system === 'megadrive' || system === 'gamegear' || system === 'snes') {
+        ignoreInput.value = 'path,ratio,region';
+      } else {
+        ignoreInput.value = '';
+      }
+    }
+    updateIgnores();
 
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        const sound = document.getElementById('clickSound');
+        sound.currentTime = 0;
+        sound.play();
+      });
+    });
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

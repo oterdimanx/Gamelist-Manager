@@ -1,65 +1,97 @@
-const status = document.getElementById('status');
+async function postAPI(url, formData, action) {
+  const statusText = document.getElementById('status-text');
+  const progress = document.getElementById('progress');
+  const progressBar = document.querySelector('.progress-bar');
 
-async function postAPI(url, formData) {
-  try {
-    const response = await fetch(url, { method: 'POST', body: formData });
-    const data = await response.json();
-    status.textContent = data.message || data.error;
-    return data;
-  } catch (err) {
-    status.textContent = err.message;
-  }
+  // Reset UI
+  statusText.textContent = `Starting ${action}...`;
+  progress.classList.remove('hidden');
+  progressBar.style.width = '0%';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', url);
+
+  // Upload progress
+  xhr.upload.onprogress = (e) => {
+    if (e.lengthComputable) {
+      const percent = (e.loaded / e.total * 100).toFixed(0);
+      statusText.textContent = `Uploading: ${percent}%`;
+      progressBar.style.width = `${percent}%`;
+    }
+  };
+
+  // Simulate processing progress
+  let processingPercent = 0;
+  const processingInterval = setInterval(() => {
+    if (processingPercent < 90) {
+      processingPercent += 10; // Gradual increase
+      statusText.textContent = `Processing ${action}: ${processingPercent}%`;
+      progressBar.style.width = `${processingPercent}%`;
+    }
+  }, 500);
+
+  xhr.onload = async () => {
+    clearInterval(processingInterval);
+    try {
+      const data = await xhr.response.json();
+      progressBar.style.width = '100%';
+      statusText.textContent = data.message || data.error;
+      setTimeout(() => {
+        progress.classList.add('hidden');
+      }, 1000);
+    } catch (err) {
+      statusText.textContent = `Error: ${err.message}`;
+      progress.classList.add('hidden');
+    }
+  };
+
+  xhr.onerror = () => {
+    clearInterval(processingInterval);
+    statusText.textContent = `${action} failed`;
+    progress.classList.add('hidden');
+  };
+
+  xhr.responseType = 'json';
+  xhr.send(formData);
 }
 
 async function importInitial() {
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
-  const file = document.getElementById('initialFile').files[0];
-  if (!file) return status.textContent = 'Select file';
-
+  const initialFile = document.getElementById('initialFile').files[0];
+  if (!system || !initialFile) {
+    document.getElementById('status-text').textContent = 'Please select system and file';
+    return;
+  }
   const formData = new FormData();
   formData.append('system', system);
   formData.append('ignore', ignore);
-  formData.append('initialFile', file);
-
-  await postAPI('/api/import-initial', formData);
+  formData.append('initialFile', initialFile);
+  await postAPI('/.netlify/functions/api/import-initial', formData, 'Import');
 }
 
 async function mergeComplete() {
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
-  const file = document.getElementById('completeFile').files[0];
-  if (!file) return status.textContent = 'Select file';
-
+  const completeFile = document.getElementById('completeFile').files[0];
+  if (!system || !completeFile) {
+    document.getElementById('status-text').textContent = 'Please select system and file';
+    return;
+  }
   const formData = new FormData();
   formData.append('system', system);
   formData.append('ignore', ignore);
-  formData.append('completeFile', file);
-
-  await postAPI('/api/merge-complete', formData);
+  formData.append('completeFile', completeFile);
+  await postAPI('/.netlify/functions/api/merge-complete', formData, 'Merge');
 }
 
 async function exportMerged() {
   const system = document.getElementById('system').value;
-  console.log('Exporting system:', system); // Debug
-  if (!system) return status.textContent = 'Select a system';
-
-  const response = await fetch('/api/export', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ system })
-  });
-
-  if (response.ok) {
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `generated-${system}.xml`;
-    a.click();
-    status.textContent = 'Export successful';
-  } else {
-    const data = await response.json();
-    status.textContent = data.error || 'Export failed';
+  if (!system) {
+    document.getElementById('status-text').textContent = 'Please select system';
+    return;
   }
+  const formData = new FormData();
+  formData.append('system', system);
+  await postAPI('/.netlify/functions/api/export', formData, 'Export');
 }
