@@ -46,7 +46,7 @@ app.post('/api/import-initial', upload.single('initialFile'), async (req, res) =
     const system = req.body.system;
     if (!system) throw new Error('System is required');
     let ignoreFields = req.body.ignore ? req.body.ignore.split(',').map(f => f.trim()) : [];
-    if (system === 'gamegear' || system === 'snes' || system === 'sms' || system === 'pce' || system === 'n64') {
+    if (['gamegear', 'snes', 'megadrive', 'sms', 'pce', 'n64', '2600'].includes(system)) {
       ignoreFields.push('ratio', 'region');
     }
     if (!req.file) throw new Error('No file uploaded');
@@ -72,8 +72,11 @@ app.post('/api/merge-complete', upload.single('completeFile'), async (req, res) 
     const system = req.body.system;
     if (!system) throw new Error('System is required');
     let ignoreFields = req.body.ignore ? req.body.ignore.split(',').map(f => f.trim()) : [];
-    if (system === 'gamegear' || system === 'snes' || system === 'sms' || system === 'pce' || system === 'n64') {
+    if (['gamegear', 'snes', 'megadrive', 'sms', 'pce', 'n64', '2600'].includes(system)) {
       ignoreFields.push('ratio', 'region');
+    }
+    if (system === 'mame') {
+      ignoreFields.push('lastplayed', 'playcount', 'timeplayed');
     }
     if (!req.file) throw new Error('No file uploaded');
     const start = parseInt(req.body.start) || 0;
