@@ -47,7 +47,7 @@ app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
     console.log('Processing /api/get-stats', req.body, req.files);
     const system = req.body.system;
     if (!system) throw new Error('System is required');
-    await connectDB(); // Call connectDB to ensure MongoDB is connected
+    await connectDB();
 
     let stats = {
       totalGames: 0,
@@ -55,7 +55,16 @@ app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
       withDeveloper: 0,
       withPublisher: 0,
       withGenre: 0,
-      withReleaseDate: 0
+      withReleaseDate: 0,
+      withRating: 0,
+      withPlayers: 0,
+      withRatio: 0,
+      withRegion: 0,
+      withPlaycount: 0,
+      withLastplayed: 0,
+      withTimeplayed: 0,
+      withRomtype: 0,
+      withDesc: 0
     };
 
     if (req.file) {
@@ -63,21 +72,39 @@ app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
       const games = parseXML(req.file.path);
       if (!Array.isArray(games)) throw new Error('Invalid XML structure');
       stats.totalGames = games.length;
-      stats.withImage = games.filter(g => g.image).length;
-      stats.withDeveloper = games.filter(g => g.developer).length;
-      stats.withPublisher = games.filter(g => g.publisher).length;
-      stats.withGenre = games.filter(g => g.genre).length;
-      stats.withReleaseDate = games.filter(g => g.releasedate).length;
+      stats.withImage = games.filter(g => g.image && g.image !== 'Unknown').length;
+      stats.withDeveloper = games.filter(g => g.developer && g.developer !== 'Unknown').length;
+      stats.withPublisher = games.filter(g => g.publisher && g.publisher !== 'Unknown').length;
+      stats.withGenre = games.filter(g => g.genre && g.genre !== 'Unknown').length;
+      stats.withReleaseDate = games.filter(g => g.releasedate && g.releasedate !== 'Unknown' && g.releasedate !== '19700101T000000').length;
+      stats.withRating = games.filter(g => g.rating && g.rating !== 'Unknown').length;
+      stats.withPlayers = games.filter(g => g.players && g.players !== 'Unknown').length;
+      stats.withRatio = games.filter(g => g.ratio && g.ratio !== 'Unknown').length;
+      stats.withRegion = games.filter(g => g.region && g.region !== 'Unknown').length;
+      stats.withPlaycount = games.filter(g => g.playcount && g.playcount !== 'Unknown').length;
+      stats.withLastplayed = games.filter(g => g.lastplayed && g.lastplayed !== 'Unknown').length;
+      stats.withTimeplayed = games.filter(g => g.timeplayed && g.timeplayed !== 'Unknown').length;
+      stats.withRomtype = games.filter(g => g.romtype && g.romtype !== 'Unknown').length;
+      stats.withDesc = games.filter(g => g.desc && g.desc !== 'Unknown').length;
       fs.unlinkSync(req.file.path);
     } else {
       // Query MongoDB
       const games = await Game.find({ system });
       stats.totalGames = games.length;
-      stats.withImage = await Game.countDocuments({ system, image: { $exists: true, $ne: null } });
-      stats.withDeveloper = await Game.countDocuments({ system, developer: { $exists: true, $ne: null } });
-      stats.withPublisher = await Game.countDocuments({ system, publisher: { $exists: true, $ne: null } });
-      stats.withGenre = await Game.countDocuments({ system, genre: { $exists: true, $ne: null } });
-      stats.withReleaseDate = await Game.countDocuments({ system, releasedate: { $exists: true, $ne: null } });
+      stats.withImage = games.filter(g => g.image && g.image !== 'Unknown').length;
+      stats.withDeveloper = games.filter(g => g.developer && g.developer !== 'Unknown').length;
+      stats.withPublisher = games.filter(g => g.publisher && g.publisher !== 'Unknown').length;
+      stats.withGenre = games.filter(g => g.genre && g.genre !== 'Unknown').length;
+      stats.withReleaseDate = games.filter(g => g.releasedate && g.releasedate !== 'Unknown' && g.releasedate !== '19700101T000000').length;
+      stats.withRating = games.filter(g => g.rating && g.rating !== 'Unknown').length;
+      stats.withPlayers = games.filter(g => g.players && g.players !== 'Unknown').length;
+      stats.withRatio = games.filter(g => g.ratio && g.ratio !== 'Unknown').length;
+      stats.withRegion = games.filter(g => g.region && g.region !== 'Unknown').length;
+      stats.withPlaycount = games.filter(g => g.playcount && g.playcount !== 'Unknown').length;
+      stats.withLastplayed = games.filter(g => g.lastplayed && g.lastplayed !== 'Unknown').length;
+      stats.withTimeplayed = games.filter(g => g.timeplayed && g.timeplayed !== 'Unknown').length;
+      stats.withRomtype = games.filter(g => g.romtype && g.romtype !== 'Unknown').length;
+      stats.withDesc = games.filter(g => g.desc && g.desc !== 'Unknown').length;
     }
 
     res.json({ success: true, stats });
