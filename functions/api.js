@@ -9,6 +9,7 @@ const exportGames = require('../src/scripts/export');
 const { parseXML } = require('../src/utils/xmlParser');
 const connectDB = require('../src/utils/db'); // Import connectDB
 const Game = require('../src/models/Game'); // Import Game model
+const path = require('path');
 
 const app = express();
 app.use(bodyParser.json());
@@ -110,6 +111,51 @@ app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
     res.json({ success: true, stats });
   } catch (err) {
     console.error('Stats error:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/clean-images', async (req, res) => {
+  try {
+    console.log('Processing /api/clean-images', req.body);
+    const system = req.body.system;
+    if (!system) throw new Error('System is required');
+    await connectDB();
+
+    const games = await Game.find({ system, image: { $exists: true, $ne: null, $ne: 'Unknown', $ne: '' } });
+    const usedImages = new Set();
+    for (const game of games) {
+      if (game.image) {
+        const imageName = path.basename(game.image);
+        usedImages.add(imageName);
+      }
+    }
+
+    const imagesPath = path.join(__dirname, '..', 'roms', 'downloaded_images');
+    const usedImagesPath = path.join(__dirname, '..', 'roms', 'used_images');
+    if (!fs.existsSync(imagesPath)) {
+      throw new Error(`Images path ${imagesPath} does not exist`);
+    }
+
+    fs.mkdirSync(usedImagesPath, { recursive: true });
+    const imageFiles = fs.readdirSync(imagesPath).filter(f => f.match(/\.(png|jpg|jpeg)$/i));
+    let copiedCount = 0;
+    for (const image of imageFiles) {
+      if (usedImages.has(image)) {
+        fs.copyFileSync(
+          path.join(imagesPath, image),
+          path.join(usedImagesPath, image)
+        );
+        copiedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Copied ${copiedCount} images to ${usedImagesPath}`
+    });
+  } catch (err) {
+    console.error('Clean images error:', err.message, err.stack);
     res.status(500).json({ error: err.message });
   }
 });

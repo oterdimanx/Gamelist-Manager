@@ -88,6 +88,51 @@ async function postAPI(url, formData, action) {
   });
 }
 
+async function cleanImages() {
+  const system = document.getElementById('system').value;
+  if (!system) {
+    document.getElementById('action-status').textContent = 'Please select system';
+    return;
+  }
+  
+  try {
+    document.getElementById('action-status').textContent = 'Cleaning images...';
+    
+    const response = await fetch('/api/clean-images', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ system })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('Full clean images response:', result); // Added for more detailed logging
+    
+    if (result.success) {
+      document.getElementById('action-status').textContent = result.message || 'Cleaning completed successfully';
+      console.log('Clean images success:', result.message);
+    } else {
+      document.getElementById('action-status').textContent = 'Error cleaning images: ' + (result.error || 'Unknown error');
+      console.log('Clean images failure:', result);
+    }
+
+    // Delay stats refresh to let message show
+    setTimeout(async () => {
+      const stats = await getStats(system);
+      displayStats(stats);
+    }, 3000); // Increased to 3 seconds for better visibility
+    
+  } catch (error) {
+    console.error('Error in cleanImages:', error);
+    document.getElementById('action-status').textContent = 'Error: ' + error.message;
+  }
+}
+
 async function getTotalGames(system, file, fileKey) {
   const formData = new FormData();
   formData.append('system', system);
@@ -124,7 +169,16 @@ function displayStats(stats) {
     { metric: 'With Developer', value: `${stats.withDeveloper} (${((stats.withDeveloper / total) * 100).toFixed(1)}%)` },
     { metric: 'With Publisher', value: `${stats.withPublisher} (${((stats.withPublisher / total) * 100).toFixed(1)}%)` },
     { metric: 'With Genre', value: `${stats.withGenre} (${((stats.withGenre / total) * 100).toFixed(1)}%)` },
-    { metric: 'With Release Date', value: `${stats.withReleaseDate} (${((stats.withReleaseDate / total) * 100).toFixed(1)}%)` }
+    { metric: 'With Release Date', value: `${stats.withReleaseDate} (${((stats.withReleaseDate / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Rating', value: `${stats.withRating} (${((stats.withRating / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Players', value: `${stats.withPlayers} (${((stats.withPlayers / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Ratio', value: `${stats.withRatio} (${((stats.withRatio / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Region', value: `${stats.withRegion} (${((stats.withRegion / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Playcount', value: `${stats.withPlaycount} (${((stats.withPlaycount / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Last Played', value: `${stats.withLastplayed} (${((stats.withLastplayed / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Time Played', value: `${stats.withTimeplayed} (${((stats.withTimeplayed / total) * 100).toFixed(1)}%)` },
+    { metric: 'With ROM Type', value: `${stats.withRomtype} (${((stats.withRomtype / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Description', value: `${stats.withDesc} (${((stats.withDesc / total) * 100).toFixed(1)}%)` }
   ];
   statsBody.innerHTML = rows.map(row => `
     <tr>
