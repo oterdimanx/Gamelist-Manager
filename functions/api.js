@@ -7,6 +7,8 @@ const { importGames } = require('../src/scripts/import');
 const mergeGames = require('../src/scripts/merge');
 const exportGames = require('../src/scripts/export');
 const { parseXML } = require('../src/utils/xmlParser');
+const connectDB = require('../src/utils/db'); // Import connectDB
+const Game = require('../src/models/Game'); // Import Game model
 
 const app = express();
 app.use(bodyParser.json());
@@ -36,6 +38,51 @@ app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name:
     res.json({ success: true, totalGames: games.length });
   } catch (err) {
     console.error('Get total games error:', err.message, err.stack);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
+  try {
+    console.log('Processing /api/get-stats', req.body, req.files);
+    const system = req.body.system;
+    if (!system) throw new Error('System is required');
+    await connectDB(); // Call connectDB to ensure MongoDB is connected
+
+    let stats = {
+      totalGames: 0,
+      withImage: 0,
+      withDeveloper: 0,
+      withPublisher: 0,
+      withGenre: 0,
+      withReleaseDate: 0
+    };
+
+    if (req.file) {
+      // Analyze uploaded gamelist file
+      const games = parseXML(req.file.path);
+      if (!Array.isArray(games)) throw new Error('Invalid XML structure');
+      stats.totalGames = games.length;
+      stats.withImage = games.filter(g => g.image).length;
+      stats.withDeveloper = games.filter(g => g.developer).length;
+      stats.withPublisher = games.filter(g => g.publisher).length;
+      stats.withGenre = games.filter(g => g.genre).length;
+      stats.withReleaseDate = games.filter(g => g.releasedate).length;
+      fs.unlinkSync(req.file.path);
+    } else {
+      // Query MongoDB
+      const games = await Game.find({ system });
+      stats.totalGames = games.length;
+      stats.withImage = await Game.countDocuments({ system, image: { $exists: true, $ne: null } });
+      stats.withDeveloper = await Game.countDocuments({ system, developer: { $exists: true, $ne: null } });
+      stats.withPublisher = await Game.countDocuments({ system, publisher: { $exists: true, $ne: null } });
+      stats.withGenre = await Game.countDocuments({ system, genre: { $exists: true, $ne: null } });
+      stats.withReleaseDate = await Game.countDocuments({ system, releasedate: { $exists: true, $ne: null } });
+    }
+
+    res.json({ success: true, stats });
+  } catch (err) {
+    console.error('Stats error:', err.message, err.stack);
     res.status(500).json({ error: err.message });
   }
 });

@@ -98,6 +98,43 @@ async function getTotalGames(system, file, fileKey) {
   return response.totalGames;
 }
 
+async function getStats(system, file) {
+  const formData = new FormData();
+  formData.append('system', system);
+  if (file) formData.append('gamelistFile', file);
+  const response = await postAPI('/api/get-stats', formData, 'Get Stats');
+  if (response.error) {
+    console.error('Stats error:', response.error);
+    return null;
+  }
+  return response.stats;
+}
+
+function displayStats(stats) {
+  const statsBody = document.getElementById('stats-body');
+  const statsDiv = document.getElementById('stats');
+  if (!stats) {
+    statsDiv.classList.add('hidden');
+    return;
+  }
+  const total = stats.totalGames;
+  const rows = [
+    { metric: 'Total Games', value: total },
+    { metric: 'With Image', value: `${stats.withImage} (${((stats.withImage / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Developer', value: `${stats.withDeveloper} (${((stats.withDeveloper / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Publisher', value: `${stats.withPublisher} (${((stats.withPublisher / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Genre', value: `${stats.withGenre} (${((stats.withGenre / total) * 100).toFixed(1)}%)` },
+    { metric: 'With Release Date', value: `${stats.withReleaseDate} (${((stats.withReleaseDate / total) * 100).toFixed(1)}%)` }
+  ];
+  statsBody.innerHTML = rows.map(row => `
+    <tr>
+      <td>${row.metric}</td>
+      <td>${row.value}</td>
+    </tr>
+  `).join('');
+  statsDiv.classList.remove('hidden');
+}
+
 async function importInitial() {
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
@@ -187,3 +224,32 @@ async function exportMerged() {
   }
   await postAPI('/api/export', formData, 'Export');
 }
+
+// Update stats when system changes or file is selected
+document.getElementById('system').addEventListener('change', async () => {
+  const system = document.getElementById('system').value;
+  if (system) {
+    const stats = await getStats(system);
+    displayStats(stats);
+  } else {
+    displayStats(null);
+  }
+});
+
+document.getElementById('initialFile').addEventListener('change', async () => {
+  const system = document.getElementById('system').value;
+  const file = document.getElementById('initialFile').files[0];
+  if (system && file) {
+    const stats = await getStats(system, file);
+    displayStats(stats);
+  }
+});
+
+document.getElementById('completeFile').addEventListener('change', async () => {
+  const system = document.getElementById('system').value;
+  const file = document.getElementById('completeFile').files[0];
+  if (system && file) {
+    const stats = await getStats(system, file);
+    displayStats(stats);
+  }
+});

@@ -218,3 +218,7 @@ select:focus, input:focus {
     margin-top: 10px;
   }
 }
+
+#stats { margin-top: 20px; padding: 10px; border: 1px solid #ddd; }
+#stats table { width: 100%; border-collapse: collapse; }
+#stats th, #stats td { border: 1px solid #ddd; padding: 5px; text-align: left; }
