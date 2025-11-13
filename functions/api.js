@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const express = require('express');
 const serverless = require('serverless-http');
 const multer = require('multer');
@@ -7,8 +8,8 @@ const { importGames } = require('../src/scripts/import');
 const mergeGames = require('../src/scripts/merge');
 const exportGames = require('../src/scripts/export');
 const { parseXML } = require('../src/utils/xmlParser');
-const connectDB = require('../src/utils/db'); // Import connectDB
-const Game = require('../src/models/Game'); // Import Game model
+const connectDB = require('../src/utils/db');
+const Game = require('../src/models/Game');
 const path = require('path');
 
 const app = express();
@@ -24,6 +25,21 @@ app.use((req, res, next) => {
   console.log(`Received ${req.method} request to ${req.url}`);
   next();
 });
+
+// Middleware: Verify JWT and set req.userId
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+  const token = authHeader.replace('Bearer ', '');
+  try {
+    // Use Netlify's site URL or env var for audience; secret from Netlify env (set NETLIFY_IDENTITY_JWT_SECRET)
+    const decoded = jwt.verify(token, process.env.NETLIFY_IDENTITY_JWT_SECRET);
+    req.userId = decoded.sub; // Unique user ID
+    next();
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
 
 app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name: 'completeFile' }]), async (req, res) => {
   try {
@@ -43,10 +59,11 @@ app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name:
   }
 });
 
-app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
+app.post('/api/get-stats', authMiddleware, upload.single('gamelistFile'), async (req, res) => {
   try {
     console.log('Processing /api/get-stats', req.body, req.files);
     const system = req.body.system;
+    const userId = req.userId;
     if (!system) throw new Error('System is required');
     await connectDB();
 
@@ -90,7 +107,7 @@ app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
       fs.unlinkSync(req.file.path);
     } else {
       // Query MongoDB
-      const games = await Game.find({ system });
+      const games = await Game.find({ system, userId });
       stats.totalGames = games.length;
       stats.withImage = games.filter(g => g.image && g.image !== 'Unknown').length;
       stats.withDeveloper = games.filter(g => g.developer && g.developer !== 'Unknown').length;
@@ -115,14 +132,15 @@ app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
   }
 });
 
-app.post('/api/clean-images', async (req, res) => {
+app.post('/api/clean-images', authMiddleware, async (req, res) => {
   try {
     console.log('Processing /api/clean-images', req.body);
     const system = req.body.system;
+    const userId = req.userId;
     if (!system) throw new Error('System is required');
     await connectDB();
 
-    const games = await Game.find({ system, image: { $exists: true, $ne: null, $ne: 'Unknown', $ne: '' } });
+    const games = await Game.find({ system, userId, image: { $exists: true, $ne: null, $ne: 'Unknown', $ne: '' } });
     const usedImages = new Set();
     for (const game of games) {
       if (game.image) {
@@ -166,7 +184,7 @@ app.post('/api/import-initial', upload.single('initialFile'), async (req, res) =
     const system = req.body.system;
     if (!system) throw new Error('System is required');
     let ignoreFields = req.body.ignore ? req.body.ignore.split(',').map(f => f.trim()) : [];
-    if (['gamegear', 'snes', 'megadrive', 'sms', 'pce', 'n64', '2600'].includes(system)) {
+    if (['gamegear', 'snes', 'megadrive', 'sms', 'pce', 'n64', '2600', 'psx', 'saturn', '32x', 'gb', 'pcecd', 'segacd', 'nes'].includes(system)) {
       ignoreFields.push('ratio', 'region');
     }
     if (!req.file) throw new Error('No file uploaded');

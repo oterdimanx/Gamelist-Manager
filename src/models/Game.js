@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const gameSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
   system: { type: String, required: true },  // e.g., 'mame'
   path: { type: String, required: true },    // ROM path; unique per system+path
   name: { type: String, required: true },    // Game title

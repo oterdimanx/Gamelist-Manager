@@ -18,9 +18,10 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "fast-xml-parser": "^5.3.1",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.3",
     "multer": "^2.0.2",
-    "netlify-lambda": "^2.0.16",
+    "netlify-lambda": "^0.4.0",
     "serverless-http": "^4.0.0",
     "string-similarity": "^4.0.4",
     "xml2js": "^0.6.2"

@@ -1,4 +1,41 @@
+netlifyIdentity.on('init', user => {
+  handleAuthChange(user);
+});
+
+netlifyIdentity.on('login', user => {
+  handleAuthChange(user);
+  netlifyIdentity.close();
+});
+
+netlifyIdentity.on('logout', () => {
+  handleAuthChange(null);
+});
+
+function handleAuthChange(user) {
+  window.currentUser = user;
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const dashboardLink = document.getElementById('dashboard-link');
+  if (user) {
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline';
+    dashboardLink.style.display = 'inline';
+    console.log('Logged in as:', user.email);
+  } else {
+    loginBtn.style.display = 'inline';
+    logoutBtn.style.display = 'none';
+    dashboardLink.style.display = 'none';
+    console.log('Not logged in');
+  }
+}
+
 async function postAPI(url, formData, action) {
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (window.currentUser) {
+    headers['Authorization'] = `Bearer ${window.currentUser.token.access_token}`;
+  }
+
   const statusText = document.getElementById('status-text');
   const progress = document.getElementById('progress');
   const progressBar = document.querySelector('.progress-bar');
@@ -95,6 +132,11 @@ async function cleanImages() {
     return;
   }
   
+  if (!window.currentUser) {
+    document.getElementById('action-status').textContent = 'Please log in to clean images';
+    return;
+  }
+
   try {
     document.getElementById('action-status').textContent = 'Cleaning images...';
     
@@ -144,6 +186,12 @@ async function getTotalGames(system, file, fileKey) {
 }
 
 async function getStats(system, file) {
+
+  if (!window.currentUser) {
+    document.getElementById('action-status').textContent = 'Please log in to check system statistics';
+    return;
+  }
+
   const formData = new FormData();
   formData.append('system', system);
   if (file) formData.append('gamelistFile', file);
@@ -190,6 +238,12 @@ function displayStats(stats) {
 }
 
 async function importInitial() {
+
+  if (!window.currentUser) {
+    document.getElementById('action-status').textContent = 'Please log in to import a system file';
+    return;
+  }
+
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
   const initialFile = document.getElementById('initialFile').files[0];
@@ -227,6 +281,12 @@ async function importInitial() {
 }
 
 async function mergeComplete() {
+
+  if (!window.currentUser) {
+    document.getElementById('action-status').textContent = 'Please log in to merge files';
+    return;
+  }
+
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
   const completeFile = document.getElementById('completeFile').files[0];
@@ -264,6 +324,12 @@ async function mergeComplete() {
 }
 
 async function exportMerged() {
+
+  if (!window.currentUser) {
+    document.getElementById('action-status').textContent = 'Please log in to export files';
+    return;
+  }
+
   const system = document.getElementById('system').value;
   console.log('System element:', document.getElementById('system')); // Debug
   console.log('Exporting system:', system);
