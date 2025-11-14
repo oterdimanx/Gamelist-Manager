@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamelist Manager Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <style>
+    #dashboard-nav { margin: 20px; }
+    #systems-list { margin: 20px; }
+    .system-item { margin: 10px 0; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="dashboard-nav">
+    <a href="/">Back to Home</a>
+    <button id="logout-btn" onclick="netlifyIdentity.logout()">Logout</button>
+  </div>
+  <h1>Gamelist Manager Dashboard</h1>
+  <div id="status">Loading...</div>
+  <div id="systems-list"></div>
+  <script src="/dashboard.js"></script>
+</body>
+</html>

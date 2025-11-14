@@ -45,23 +45,27 @@ app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name:
 });
 
 app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
+
 console.log('Get-stats: Headers:', req.headers, 'Body:', req.body, 'File:', req.file ? req.file.originalname : 'none');
-  let userId = null;
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const decoded = jwt.decode(token);
-      userId = decoded.sub; // Matches user.id (6bd71761-a3c7-4f03-a6ff-338af03804e1)
-      console.log('Get-stats: Decoded userId:', userId);
-    } catch (err) {
-      console.error('Get-stats: JWT decode error:', err.message);
-    }
+let userId = null;
+const authHeader = req.headers.authorization;
+
+if (authHeader && authHeader.startsWith('Bearer ')) {
+  const token = authHeader.substring(7);
+  try {
+    const decoded = jwt.decode(token);
+    userId = decoded.sub; // Matches user.id (6bd71761-a3c7-4f03-a6ff-338af03804e1)
+    console.log('Get-stats: Decoded userId:', userId);
+  } catch (err) {
+    console.error('Get-stats: JWT decode error:', err.message);
   }
-  if (!userId) {
-    console.log('Get-stats: 401 Unauthorized');
-    return res.status(401).json({ error: 'Unauthorized - please log in' });
-  }
+}
+
+if (!userId) {
+  console.log('Get-stats: 401 Unauthorized');
+  return res.status(401).json({ error: 'Unauthorized - please log in' });
+}
+
 try {
     await connectDB();
     const { system } = req.body;
@@ -140,6 +144,26 @@ try {
 });
 
 app.post('/api/clean-images', async (req, res) => {
+
+  let userId = null;
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub; 
+      console.log('clean-images: Decoded userId:', userId);
+    } catch (err) {
+      console.error('clean-images: JWT decode error:', err.message);
+    }
+  }
+
+  if (!userId) {
+    console.log('clean-images: 401 Unauthorized');
+    //return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+
   try {
     console.log('Processing /api/clean-images', req.body);
     const system = req.body.system;
@@ -155,8 +179,8 @@ app.post('/api/clean-images', async (req, res) => {
       }
     }
 
-    const imagesPath = path.join(__dirname, '..', 'roms', 'downloaded_images');
-    const usedImagesPath = path.join(__dirname, '..', 'roms', 'used_images');
+    const imagesPath = path.join(__dirname, '..', 'roms', 'images_stock');
+    const usedImagesPath = path.join(__dirname, '..', 'roms', 'downloaded_images');
     if (!fs.existsSync(imagesPath)) {
       throw new Error(`Images path ${imagesPath} does not exist`);
     }

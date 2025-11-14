@@ -1,23 +1,28 @@
+// Netlify Identity
 console.log('Initializing Netlify Identity...');
 if (typeof netlifyIdentity === 'undefined') {
   console.error('Netlify Identity script not loaded');
 } else {
   netlifyIdentity.init({ API_ENDPOINT: 'https://gamelist-manager.netlify.app/.netlify/identity' });
   console.log('Netlify Identity initialized');
-  // Force check current user
+  
+  // Manual session check on load (fix for refresh)
   const currentUser = netlifyIdentity.currentUser();
-  console.log('Initial user check:', currentUser ? currentUser.email : 'No user');
+  if (currentUser) {
+    console.log('Restored session:', currentUser.email, 'ID:', currentUser.id);
+    handleAuthChange(currentUser);
+  } else {
+    console.log('No session to restore');
+  }
 }
 
 netlifyIdentity.on('init', user => {
   console.log('Identity init:', user ? user.email : 'No user');
-  console.log('Init user object:', JSON.stringify(user, null, 2));
   handleAuthChange(user);
 });
 
 netlifyIdentity.on('login', user => {
   console.log('Login:', user.email, 'ID:', user.id);
-  console.log('Login user object:', JSON.stringify(user, null, 2));
   handleAuthChange(user);
   netlifyIdentity.close();
 });
@@ -144,6 +149,7 @@ async function postAPI(url, formData, action) {
 }
 
 async function cleanImages() {
+  
   const system = document.getElementById('system').value;
   if (!system) {
     document.getElementById('action-status').textContent = 'Please select system';
