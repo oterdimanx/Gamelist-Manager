@@ -14,7 +14,7 @@ const parseESDate = (dateStr) => {
   return isNaN(parsedDate) ? undefined : parsedDate;
 };
 
-const importGames = async (system, filePath, ignoreFields = [], start = 0, end) => {
+const importGames = async (system, filePath, ignoreFields = [], start = 0, end, userId) => {
   await connectDB();
   console.time('parseXML');
   const games = parseXML(filePath);
@@ -35,6 +35,7 @@ const importGames = async (system, filePath, ignoreFields = [], start = 0, end) 
       const releasedateValue = gameData.releasedate ? parseESDate(gameData.releasedate) : undefined;
       const lastplayedValue = gameData.lastplayed ? parseESDate(gameData.lastplayed) : undefined;
       const gameDoc = {
+        userId,
         system,
         path: gameData.path,
         name: gameData.name,

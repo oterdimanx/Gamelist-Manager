@@ -26,21 +26,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware: Verify JWT and set req.userId
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    // Use Netlify's site URL or env var for audience; secret from Netlify env (set NETLIFY_IDENTITY_JWT_SECRET)
-    const decoded = jwt.verify(token, process.env.NETLIFY_IDENTITY_JWT_SECRET);
-    req.userId = decoded.sub; // Unique user ID
-    next();
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
-
 app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name: 'completeFile' }]), async (req, res) => {
   try {
     console.log('Processing /api/get-total-games', req.body, req.files);
@@ -59,13 +44,33 @@ app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name:
   }
 });
 
-app.post('/api/get-stats', authMiddleware, upload.single('gamelistFile'), async (req, res) => {
-  try {
-    console.log('Processing /api/get-stats', req.body, req.files);
-    const system = req.body.system;
-    const userId = req.userId;
-    if (!system) throw new Error('System is required');
+app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
+console.log('Get-stats: Headers:', req.headers, 'Body:', req.body, 'File:', req.file ? req.file.originalname : 'none');
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub; // Matches user.id (6bd71761-a3c7-4f03-a6ff-338af03804e1)
+      console.log('Get-stats: Decoded userId:', userId);
+    } catch (err) {
+      console.error('Get-stats: JWT decode error:', err.message);
+    }
+  }
+  if (!userId) {
+    console.log('Get-stats: 401 Unauthorized');
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+try {
     await connectDB();
+    const { system } = req.body;
+    const file = req.file;
+
+    if (!system && !file) {
+      console.log('Get-stats: 400 Missing system or file');
+      return res.status(400).json({ error: 'System or file required' });
+    }
 
     let stats = {
       totalGames: 0,
@@ -85,62 +90,63 @@ app.post('/api/get-stats', authMiddleware, upload.single('gamelistFile'), async 
       withDesc: 0
     };
 
-    if (req.file) {
-      // Analyze uploaded gamelist file
-      const games = parseXML(req.file.path);
-      if (!Array.isArray(games)) throw new Error('Invalid XML structure');
+    if (file) {
+      console.log('Get-stats: Parsing file', file.originalname);
+      const xmlContent = file.buffer.toString();
+      const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
+      const parsed = parser.parse(xmlContent);
+      const games = Array.isArray(parsed.gameList.game) ? parsed.gameList.game : [parsed.gameList.game].filter(Boolean);
       stats.totalGames = games.length;
-      stats.withImage = games.filter(g => g.image && g.image !== 'Unknown').length;
-      stats.withDeveloper = games.filter(g => g.developer && g.developer !== 'Unknown').length;
-      stats.withPublisher = games.filter(g => g.publisher && g.publisher !== 'Unknown').length;
-      stats.withGenre = games.filter(g => g.genre && g.genre !== 'Unknown').length;
-      stats.withReleaseDate = games.filter(g => g.releasedate && g.releasedate !== 'Unknown' && g.releasedate !== '19700101T000000').length;
-      stats.withRating = games.filter(g => g.rating && g.rating !== 'Unknown').length;
-      stats.withPlayers = games.filter(g => g.players && g.players !== 'Unknown').length;
-      stats.withRatio = games.filter(g => g.ratio && g.ratio !== 'Unknown').length;
-      stats.withRegion = games.filter(g => g.region && g.region !== 'Unknown').length;
-      stats.withPlaycount = games.filter(g => g.playcount && g.playcount !== 'Unknown').length;
-      stats.withLastplayed = games.filter(g => g.lastplayed && g.lastplayed !== 'Unknown').length;
-      stats.withTimeplayed = games.filter(g => g.timeplayed && g.timeplayed !== 'Unknown').length;
-      stats.withRomtype = games.filter(g => g.romtype && g.romtype !== 'Unknown').length;
-      stats.withDesc = games.filter(g => g.desc && g.desc !== 'Unknown').length;
-      fs.unlinkSync(req.file.path);
+      stats.withImage = games.filter(g => g.image && g.image !== 'Unknown' && g.image !== '').length;
+      stats.withDeveloper = games.filter(g => g.developer && g.developer !== 'Unknown' && g.developer !== '').length;
+      stats.withPublisher = games.filter(g => g.publisher && g.publisher !== 'Unknown' && g.publisher !== '').length;
+      stats.withGenre = games.filter(g => g.genre && g.genre !== 'Unknown' && g.genre !== '').length;
+      stats.withReleaseDate = games.filter(g => g.releasedate && g.releasedate !== 'Unknown' && g.releasedate !== '').length;
+      stats.withRating = games.filter(g => g.rating && g.rating !== 'Unknown' && g.rating !== '').length;
+      stats.withPlayers = games.filter(g => g.players && g.players !== 'Unknown' && g.players !== '').length;
+      stats.withRatio = games.filter(g => g.ratio && g.ratio !== 'Unknown' && g.ratio !== '').length;
+      stats.withRegion = games.filter(g => g.region && g.region !== 'Unknown' && g.region !== '').length;
+      stats.withPlaycount = games.filter(g => g.playcount && g.playcount !== 'Unknown' && g.playcount !== '').length;
+      stats.withLastplayed = games.filter(g => g.lastplayed && g.lastplayed !== 'Unknown' && g.lastplayed !== '').length;
+      stats.withTimeplayed = games.filter(g => g.timeplayed && g.timeplayed !== 'Unknown' && g.timeplayed !== '').length;
+      stats.withRomtype = games.filter(g => g.romtype && g.romtype !== 'Unknown' && g.romtype !== '').length;
+      stats.withDesc = games.filter(g => g.desc && g.desc !== 'Unknown' && g.desc !== '').length;
     } else {
-      // Query MongoDB
+      console.log('Get-stats: Querying DB for system:', system, 'userId:', userId);
       const games = await Game.find({ system, userId });
       stats.totalGames = games.length;
-      stats.withImage = games.filter(g => g.image && g.image !== 'Unknown').length;
-      stats.withDeveloper = games.filter(g => g.developer && g.developer !== 'Unknown').length;
-      stats.withPublisher = games.filter(g => g.publisher && g.publisher !== 'Unknown').length;
-      stats.withGenre = games.filter(g => g.genre && g.genre !== 'Unknown').length;
-      stats.withReleaseDate = games.filter(g => g.releasedate && g.releasedate !== 'Unknown' && g.releasedate !== '19700101T000000').length;
-      stats.withRating = games.filter(g => g.rating && g.rating !== 'Unknown').length;
-      stats.withPlayers = games.filter(g => g.players && g.players !== 'Unknown').length;
-      stats.withRatio = games.filter(g => g.ratio && g.ratio !== 'Unknown').length;
-      stats.withRegion = games.filter(g => g.region && g.region !== 'Unknown').length;
-      stats.withPlaycount = games.filter(g => g.playcount && g.playcount !== 'Unknown').length;
-      stats.withLastplayed = games.filter(g => g.lastplayed && g.lastplayed !== 'Unknown').length;
-      stats.withTimeplayed = games.filter(g => g.timeplayed && g.timeplayed !== 'Unknown').length;
-      stats.withRomtype = games.filter(g => g.romtype && g.romtype !== 'Unknown').length;
-      stats.withDesc = games.filter(g => g.desc && g.desc !== 'Unknown').length;
+      stats.withImage = games.filter(g => g.image && g.image !== 'Unknown' && g.image !== '').length;
+      stats.withDeveloper = games.filter(g => g.developer && g.developer !== 'Unknown' && g.developer !== '').length;
+      stats.withPublisher = games.filter(g => g.publisher && g.publisher !== 'Unknown' && g.publisher !== '').length;
+      stats.withGenre = games.filter(g => g.genre && g.genre !== 'Unknown' && g.genre !== '').length;
+      stats.withReleaseDate = games.filter(g => g.releasedate && g.releasedate !== 'Unknown' && g.releasedate !== '').length;
+      stats.withRating = games.filter(g => g.rating && g.rating !== 'Unknown' && g.rating !== '').length;
+      stats.withPlayers = games.filter(g => g.players && g.players !== 'Unknown' && g.players !== '').length;
+      stats.withRatio = games.filter(g => g.ratio && g.ratio !== 'Unknown' && g.ratio !== '').length;
+      stats.withRegion = games.filter(g => g.region && g.region !== 'Unknown' && g.region !== '').length;
+      stats.withPlaycount = games.filter(g => g.playcount && g.playcount !== 'Unknown' && g.playcount !== '').length;
+      stats.withLastplayed = games.filter(g => g.lastplayed && g.lastplayed !== 'Unknown' && g.lastplayed !== '').length;
+      stats.withTimeplayed = games.filter(g => g.timeplayed && g.timeplayed !== 'Unknown' && g.timeplayed !== '').length;
+      stats.withRomtype = games.filter(g => g.romtype && g.romtype !== 'Unknown' && g.romtype !== '').length;
+      stats.withDesc = games.filter(g => g.desc && g.desc !== 'Unknown' && g.desc !== '').length;
     }
 
+    console.log('Get-stats: Returning stats', stats);
     res.json({ success: true, stats });
   } catch (err) {
-    console.error('Stats error:', err.message, err.stack);
-    res.status(500).json({ error: err.message });
+    console.error('Get-stats error:', err.message, err.stack);
+    res.status(500).json({ error: `Server error: ${err.message}` });
   }
 });
 
-app.post('/api/clean-images', authMiddleware, async (req, res) => {
+app.post('/api/clean-images', async (req, res) => {
   try {
     console.log('Processing /api/clean-images', req.body);
     const system = req.body.system;
-    const userId = req.userId;
     if (!system) throw new Error('System is required');
     await connectDB();
 
-    const games = await Game.find({ system, userId, image: { $exists: true, $ne: null, $ne: 'Unknown', $ne: '' } });
+    const games = await Game.find({ system, image: { $exists: true, $ne: null, $ne: 'Unknown', $ne: '' } });
     const usedImages = new Set();
     for (const game of games) {
       if (game.image) {
@@ -179,18 +185,37 @@ app.post('/api/clean-images', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/import-initial', upload.single('initialFile'), async (req, res) => {
+
+  console.log('import-initial: Headers:', req.headers, 'Body:', req.body, 'File:', req.file ? req.file.originalname : 'none');
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub; // Matches user.id (6bd71761-a3c7-4f03-a6ff-338af03804e1)
+      console.log('import-initial: Decoded userId:', userId);
+    } catch (err) {
+      console.error('import-initial: JWT decode error:', err.message);
+    }
+  }
+  if (!userId) {
+    console.log('import-initial: 401 Unauthorized');
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+
   try {
     console.log('Processing /api/import-initial', req.body, req.file);
     const system = req.body.system;
     if (!system) throw new Error('System is required');
     let ignoreFields = req.body.ignore ? req.body.ignore.split(',').map(f => f.trim()) : [];
-    if (['gamegear', 'snes', 'megadrive', 'sms', 'pce', 'n64', '2600', 'psx', 'saturn', '32x', 'gb', 'pcecd', 'segacd', 'nes'].includes(system)) {
+    if (['gamegear', 'snes', 'megadrive', 'sms', 'pce', 'n64', '2600'].includes(system)) {
       ignoreFields.push('ratio', 'region');
     }
     if (!req.file) throw new Error('No file uploaded');
     const start = parseInt(req.body.start) || 0;
     const end = parseInt(req.body.end) || undefined;
-    await importGames(system, req.file.path, ignoreFields, start, end);
+    await importGames(system, req.file.path, ignoreFields, start, end, userId);
     fs.unlinkSync(req.file.path);
     res.json({ 
       success: true, 

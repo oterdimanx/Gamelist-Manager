@@ -1,13 +1,29 @@
+console.log('Initializing Netlify Identity...');
+if (typeof netlifyIdentity === 'undefined') {
+  console.error('Netlify Identity script not loaded');
+} else {
+  netlifyIdentity.init({ API_ENDPOINT: 'https://gamelist-manager.netlify.app/.netlify/identity' });
+  console.log('Netlify Identity initialized');
+  // Force check current user
+  const currentUser = netlifyIdentity.currentUser();
+  console.log('Initial user check:', currentUser ? currentUser.email : 'No user');
+}
+
 netlifyIdentity.on('init', user => {
+  console.log('Identity init:', user ? user.email : 'No user');
+  console.log('Init user object:', JSON.stringify(user, null, 2));
   handleAuthChange(user);
 });
 
 netlifyIdentity.on('login', user => {
+  console.log('Login:', user.email, 'ID:', user.id);
+  console.log('Login user object:', JSON.stringify(user, null, 2));
   handleAuthChange(user);
   netlifyIdentity.close();
 });
 
 netlifyIdentity.on('logout', () => {
+  console.log('Logout');
   handleAuthChange(null);
 });
 
@@ -20,7 +36,7 @@ function handleAuthChange(user) {
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline';
     dashboardLink.style.display = 'inline';
-    console.log('Logged in as:', user.email);
+    console.log('Logged in:', user.email, 'ID:', user.id);
   } else {
     loginBtn.style.display = 'inline';
     logoutBtn.style.display = 'none';
@@ -30,24 +46,23 @@ function handleAuthChange(user) {
 }
 
 async function postAPI(url, formData, action) {
-
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {};
   if (window.currentUser) {
     headers['Authorization'] = `Bearer ${window.currentUser.token.access_token}`;
+    console.log('Sending Authorization header:', headers['Authorization']); // Debug
   }
-
   const statusText = document.getElementById('status-text');
   const progress = document.getElementById('progress');
   const progressBar = document.querySelector('.progress-bar');
-
   console.log(`Sending ${action} to ${url}`);
   statusText.textContent = `Starting ${action}...`;
   progress.classList.remove('hidden');
   progressBar.style.width = '0%';
-
   const xhr = new XMLHttpRequest();
   xhr.open('POST', url);
-
+  Object.keys(headers).forEach(key => {
+    xhr.setRequestHeader(key, headers[key]);
+  });
   xhr.upload.onprogress = (e) => {
     if (e.lengthComputable) {
       const percent = (e.loaded / e.total * 100).toFixed(0);
@@ -55,7 +70,6 @@ async function postAPI(url, formData, action) {
       progressBar.style.width = `${percent}%`;
     }
   };
-
   let processingPercent = 0;
   const processingInterval = setInterval(() => {
     if (processingPercent < 90) {
@@ -64,15 +78,13 @@ async function postAPI(url, formData, action) {
       progressBar.style.width = `${processingPercent}%`;
     }
   }, 500);
-
   return new Promise((resolve, reject) => {
     xhr.onload = async () => {
       clearInterval(processingInterval);
       try {
-        console.log('Response:', xhr.status, xhr.response);
+        console.log('Response:', xhr.status, xhr.responseText); // Debug
         if (xhr.status >= 200 && xhr.status < 300) {
           if (action === 'Export') {
-            // Handle file download
             const blob = xhr.response;
             const contentDisposition = xhr.getResponseHeader('Content-Disposition');
             const filename = contentDisposition
@@ -90,15 +102,24 @@ async function postAPI(url, formData, action) {
             statusText.textContent = `Downloaded ${filename}`;
             resolve({ success: true, message: `Downloaded ${filename}` });
           } else {
-            const data = xhr.response ? xhr.response : { error: 'Empty response' };
+            let data;
+            try {
+              data = xhr.responseText ? JSON.parse(xhr.responseText) : { error: 'Empty response' };
+            } catch (parseErr) {
+              console.error('JSON parse error:', parseErr, 'Raw response:', xhr.responseText);
+              data = { error: `Invalid response: ${xhr.responseText.slice(0, 50)}...` };
+            }
             progressBar.style.width = '100%';
             statusText.textContent = data.message || data.error;
             resolve(data);
           }
         } else {
-          const errorMsg = xhr.status === 500 ? 
-            `${action} timed out, but may have completed. Check MongoDB.` : 
-            `HTTP ${xhr.status}: ${xhr.status}`;
+          let errorMsg;
+          try {
+            errorMsg = xhr.responseText ? JSON.parse(xhr.responseText).error : `HTTP ${xhr.status}`;
+          } catch (parseErr) {
+            errorMsg = `HTTP ${xhr.status}: ${xhr.responseText.slice(0, 50)}...`;
+          }
           progressBar.style.width = '100%';
           statusText.textContent = errorMsg;
           resolve({ error: errorMsg });
@@ -110,7 +131,6 @@ async function postAPI(url, formData, action) {
         reject(err);
       }
     };
-
     xhr.onerror = () => {
       clearInterval(processingInterval);
       console.error('Network error:', xhr.status);
@@ -118,9 +138,7 @@ async function postAPI(url, formData, action) {
       progress.classList.add('hidden');
       reject(new Error('Network error'));
     };
-
-    // Set responseType based on action
-    xhr.responseType = action === 'Export' ? 'blob' : 'json';
+    xhr.responseType = 'text'; // Handle non-JSON responses
     xhr.send(formData);
   });
 }
@@ -132,11 +150,6 @@ async function cleanImages() {
     return;
   }
   
-  if (!window.currentUser) {
-    document.getElementById('action-status').textContent = 'Please log in to clean images';
-    return;
-  }
-
   try {
     document.getElementById('action-status').textContent = 'Cleaning images...';
     
@@ -186,12 +199,6 @@ async function getTotalGames(system, file, fileKey) {
 }
 
 async function getStats(system, file) {
-
-  if (!window.currentUser) {
-    document.getElementById('action-status').textContent = 'Please log in to check system statistics';
-    return;
-  }
-
   const formData = new FormData();
   formData.append('system', system);
   if (file) formData.append('gamelistFile', file);
@@ -238,12 +245,6 @@ function displayStats(stats) {
 }
 
 async function importInitial() {
-
-  if (!window.currentUser) {
-    document.getElementById('action-status').textContent = 'Please log in to import a system file';
-    return;
-  }
-
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
   const initialFile = document.getElementById('initialFile').files[0];
@@ -281,12 +282,6 @@ async function importInitial() {
 }
 
 async function mergeComplete() {
-
-  if (!window.currentUser) {
-    document.getElementById('action-status').textContent = 'Please log in to merge files';
-    return;
-  }
-
   const system = document.getElementById('system').value;
   const ignore = document.getElementById('ignore').value;
   const completeFile = document.getElementById('completeFile').files[0];
@@ -324,12 +319,6 @@ async function mergeComplete() {
 }
 
 async function exportMerged() {
-
-  if (!window.currentUser) {
-    document.getElementById('action-status').textContent = 'Please log in to export files';
-    return;
-  }
-
   const system = document.getElementById('system').value;
   console.log('System element:', document.getElementById('system')); // Debug
   console.log('Exporting system:', system);
