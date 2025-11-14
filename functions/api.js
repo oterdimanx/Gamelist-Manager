@@ -326,4 +326,146 @@ app.post('/api/export', upload.none(), async (req, res) => {
   }
 });
 
+// Get user's systems (for dashboard dropdown)
+app.get('/api/get-systems', async (req, res) => {
+  console.log('Get-systems: Headers:', req.headers);
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub;
+      console.log('Get-systems: Decoded userId:', userId);
+    } catch (err) {
+      console.error('Get-systems: JWT decode error:', err.message);
+    }
+  }
+  if (!userId) {
+    console.log('Get-systems: 401 Unauthorized');
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+  try {
+    await connectDB();
+    const systems = await Game.distinct('system', { userId });
+    res.json({ success: true, systems: systems.sort() });
+  } catch (err) {
+    console.error('Get-systems error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get games with pagination and search
+app.get('/api/get-games', async (req, res) => {
+  console.log('Get-games: Query:', req.query);
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub;
+      console.log('Get-games: Decoded userId:', userId);
+    } catch (err) {
+      console.error('Get-games: JWT decode error:', err.message);
+    }
+  }
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+  try {
+    await connectDB();
+    const { system, page = 1, limit = 50, search = '' } = req.query;
+    if (!system) {
+      return res.status(400).json({ error: 'System required' });
+    }
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const query = { system, userId };
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { path: { $regex: search, $options: 'i' } }
+      ];
+    }
+    const games = await Game.find(query).sort({ name: 1 }).skip(skip).limit(parseInt(limit));
+    const total = await Game.countDocuments(query);
+    res.json({ success: true, games, total, page: parseInt(page), limit: parseInt(limit) });
+  } catch (err) {
+    console.error('Get-games error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Bulk update games (for selected games)
+app.post('/api/bulk-update-games', async (req, res) => {
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub;
+    } catch (err) {
+      console.error('Bulk-update: JWT decode error:', err.message);
+    }
+  }
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+  try {
+    await connectDB();
+    const { ids, updates } = req.body;
+    if (!ids || !updates) {
+      return res.status(400).json({ error: 'IDs and updates required' });
+    }
+    const result = await Game.updateMany(
+      { _id: { $in: ids }, userId },
+      { $set: updates }
+    );
+    res.json({ success: true, updated: result.modifiedCount });
+  } catch (err) {
+    console.error('Bulk-update error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update a game (for manual editing)
+app.post('/api/update-game', async (req, res) => {
+  console.log('Update-game: Headers:', req.headers, 'Body:', req.body);
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub;
+      console.log('Update-game: Decoded userId:', userId);
+    } catch (err) {
+      console.error('Update-game: JWT decode error:', err.message);
+    }
+  }
+  if (!userId) {
+    console.log('Update-game: 401 Unauthorized');
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+  try {
+    await connectDB();
+    const { id, updates } = req.body;
+    if (!id || !updates) {
+      console.log('Update-game: 400 Missing id or updates');
+      return res.status(400).json({ error: 'ID and updates required' });
+    }
+    const result = await Game.updateOne({ _id: id, userId }, { $set: updates });
+    if (result.modifiedCount === 0) {
+      console.log('Update-game: No game updated');
+      return res.status(404).json({ error: 'Game not found or not owned by user' });
+    }
+    console.log('Update-game: Updated game ID:', id);
+    res.json({ success: true, message: 'Game updated' });
+  } catch (err) {
+    console.error('Update-game error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports.handler = serverless(app);

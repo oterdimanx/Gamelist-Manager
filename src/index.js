@@ -75,7 +75,7 @@ program
   .requiredOption('-s, --system <system>', 'System name (e.g., snes)')
   .action(async ({ system }) => {
     try {
-      await mongoose.connect(process.env.MONGODB_URI);
+      await connectDB();
       const deleteResult = await Game.deleteMany({ system });
       console.log(`Deleted ${deleteResult.deletedCount} games for ${system}`);
       process.exit(0);

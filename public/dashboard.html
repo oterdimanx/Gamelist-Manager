@@ -8,20 +8,40 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <style>
-    #dashboard-nav { margin: 20px; }
-    #systems-list { margin: 20px; }
-    .system-item { margin: 10px 0; }
-    .hidden { display: none; }
+      #dashboard-nav { margin: 20px; }
+      #system-select { margin: 20px; }
+      #games-list { margin: 20px; }
+      .game-item { margin: 10px 0; border: 1px solid #ddd; padding: 10px; }
+      .edit-form { display: none; }
+      .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div id="dashboard-nav">
-    <a href="/">Back to Home</a>
-    <button id="logout-btn" onclick="netlifyIdentity.logout()">Logout</button>
+  <div class="scanlines"></div>
+  <div class="container">
+    <header>
+      <h1>Gamelist Manager Dashboard</h1>
+      <p class="subtitle">Manage your Game's MetaDatas</p>
+    </header>
+    <div id="dashboard-nav">
+        <button id="logout-btn" onclick="netlifyIdentity.logout()" style="display: none;">Logout</button>
+        <div id="menu">
+        <a href="/">Home</a>
+        <a href="/dashboard.html">Dashboard</a>
+        </div>
+    </div>
+    <main>
+
+      <div class="card">
+        <div id="action-status" class="status-text"></div>
+        <select id="system-select">
+            <option value="">Select System</option>
+        </select>
+        <div id="games-list"></div>
+      </div>
+
+    </main>
   </div>
-  <h1>Gamelist Manager Dashboard</h1>
-  <div id="status">Loading...</div>
-  <div id="systems-list"></div>
   <script src="/dashboard.js"></script>
 </body>
 </html>

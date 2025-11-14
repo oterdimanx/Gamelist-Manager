@@ -16,10 +16,13 @@
       <p class="subtitle">Merge & Manage Your Retro Gamelists</p>
     </header>
     <div id="auth-nav">
-  <button id="login-btn" onclick="netlifyIdentity.open()">Login/Sign Up</button>
-  <button id="logout-btn" onclick="netlifyIdentity.logout()" style="display: none;">Logout</button>
-  <a href="/dashboard.html" id="dashboard-link" style="display: none;">Dashboard</a>
-</div>
+      <button id="login-btn" onclick="netlifyIdentity.open()">Login/Sign Up</button>
+      <button id="logout-btn" onclick="netlifyIdentity.logout()" style="display: none;">Logout</button>
+      <div id="menu">
+        <a href="/">Home</a>
+        <a href="/dashboard.html" id="dashboard-link" style="display: none;">Dashboard</a>
+      </div>
+    </div>
     <main>
       <div class="card">
         <form id="form">
