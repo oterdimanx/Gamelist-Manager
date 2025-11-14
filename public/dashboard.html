@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,6 +19,7 @@
         <button id="logout-btn" onclick="netlifyIdentity.logout()" style="display: none;">Logout</button>
         <div id="menu">
         <a href="/">Home</a>
+        <a href="/faq.html">Faq</a>
         <a href="/dashboard.html">Dashboard</a>
         </div>
     </div>
@@ -29,7 +30,7 @@
             <option value="">Select System</option>
         </select>
         <input id="search-input" type="text" placeholder="Search by name, publisher, or developer">
-        <button onclick="searchGames()">Search</button>
+        <button class="btn-search" onclick="searchGames()">Search</button>
         <div id="games-list"></div>
       </div>
     </main>

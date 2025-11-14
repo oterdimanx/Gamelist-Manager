@@ -57,7 +57,7 @@ h1 {
 
 .subtitle {
   font-size: 1.2rem;
-  color: #00d4b9;
+  color: #f4ff57;
 }
 
 /* Card with CRT curvature */
@@ -86,7 +86,7 @@ label {
 }
 
 select, input[type="text"], input[type="file"] {
-  width: 93%;
+  width: 100%;
   padding: 10px;
   background: #3a3a3a;
   border: 2px solid #00d4b9;
@@ -105,15 +105,16 @@ select:focus, input:focus {
 /* Buttons */
 .btn {
   display: inline-block;
-  padding: 10px 20px;
+  padding: 10px 15px;
   background: #ff3b3b;
   border: 2px solid #f0f0f0;
   border-radius: 5px;
   color: #f0f0f0;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.9rem;
+  font-size: 0.6rem;
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.1s;
+  margin-top: 20px;
 }
 
 .btn:hover {
@@ -123,6 +124,19 @@ select:focus, input:focus {
 
 .btn-export {
   background: #00d4b9;
+}
+
+.btn-search {
+  background: #003168;
+  padding: 10px 5px;
+  font-size: 0.7rem;
+  display: inline-block;
+  border: 2px solid #f0f0f0;
+  border-radius: 5px;
+  color: #f0f0f0;
+  font-family: 'Press Start 2P', cursive;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 /* Icons */
@@ -254,7 +268,29 @@ select:focus, input:focus {
 }
 
 #menu a {
+  background: #003168;
+  padding: 10px 5px;
+  font-size: 0.7rem;
+  display: inline-block;
+  border: 2px solid #f0f0f0;
+  border-radius: 5px;
   color: #f0f0f0;
+  font-family: 'Press Start 2P', cursive;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+#login-btn, #logout-btn {
+  background: #a4af04;
+  padding: 10px 5px;
+  font-size: 0.7rem;
+  display: inline-block;
+  border: 2px solid #f0f0f0;
+  border-radius: 5px;
+  color: #04094e;
+  font-family: 'Press Start 2P', cursive;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 #auth-nav { 
@@ -298,8 +334,60 @@ select:focus, input:focus {
   flex-direction: column;
 }
 
+/* Enhanced styles for game items (cards) */
+.game-item {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: box-shadow 0.3s ease;
+}
+
+.game-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.game-item h3 {
+  margin-top: 0;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.game-item p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.game-item button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.game-item button:hover {
+  background-color: #0056b3;
+}
+
 .edit-form input, .edit-form textarea {
+  width: 100%;
   margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.edit-form textarea {
+  height: 100px;
+}
+
+.edit-form button {
+  margin-right: 10px;
 }
 
 .pagination {
