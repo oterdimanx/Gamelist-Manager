@@ -150,20 +150,27 @@ async function postAPI(url, formData, action) {
 
 async function cleanImages() {
   
-  const system = document.getElementById('system').value;
+const system = document.getElementById('system').value;
   if (!system) {
     document.getElementById('action-status').textContent = 'Please select system';
     return;
   }
-  
+  if (!window.currentUser) {
+    document.getElementById('action-status').textContent = 'Please log in to clean images';
+    return;
+  }
   try {
     document.getElementById('action-status').textContent = 'Cleaning images...';
     
+    const headers = { 'Content-Type': 'application/json' };
+    if (window.currentUser) {
+      headers['Authorization'] = `Bearer ${window.currentUser.token.access_token}`;
+      console.log('Clean-images: Sending Authorization header:', headers['Authorization']); // Debug
+    }
+    
     const response = await fetch('/api/clean-images', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify({ system })
     });
     
@@ -181,17 +188,21 @@ async function cleanImages() {
       document.getElementById('action-status').textContent = 'Error cleaning images: ' + (result.error || 'Unknown error');
       console.log('Clean images failure:', result);
     }
-
+    
+    // Refresh stats
     // Delay stats refresh to let message show
     setTimeout(async () => {
       const stats = await getStats(system);
       displayStats(stats);
     }, 3000); // Increased to 3 seconds for better visibility
     
+    
   } catch (error) {
     console.error('Error in cleanImages:', error);
     document.getElementById('action-status').textContent = 'Error: ' + error.message;
   }
+
+
 }
 
 async function getTotalGames(system, file, fileKey) {

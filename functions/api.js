@@ -46,7 +46,7 @@ app.post('/api/get-total-games', upload.fields([{ name: 'initialFile' }, { name:
 
 app.post('/api/get-stats', upload.single('gamelistFile'), async (req, res) => {
 
-console.log('Get-stats: Headers:', req.headers, 'Body:', req.body, 'File:', req.file ? req.file.originalname : 'none');
+//console.log('Get-stats: Headers:', req.headers, 'Body:', req.body, 'File:', req.file ? req.file.originalname : 'none');
 let userId = null;
 const authHeader = req.headers.authorization;
 
@@ -145,23 +145,24 @@ try {
 
 app.post('/api/clean-images', async (req, res) => {
 
+  console.log('Clean-images: Headers:', req.headers, 'Body:', req.body);
   let userId = null;
   const authHeader = req.headers.authorization;
-
+  console.log('Clean-images: Auth header:', authHeader ? 'Present' : 'Missing');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
+    console.log('Clean-images: Token extracted:', token.slice(0, 10) + '...');
     try {
       const decoded = jwt.decode(token);
-      userId = decoded.sub; 
-      console.log('clean-images: Decoded userId:', userId);
+      userId = decoded.sub;
+      console.log('Clean-images: Decoded userId:', userId);
     } catch (err) {
-      console.error('clean-images: JWT decode error:', err.message);
+      console.error('Clean-images: JWT decode error:', err.message);
     }
   }
-
   if (!userId) {
-    console.log('clean-images: 401 Unauthorized');
-    //return res.status(401).json({ error: 'Unauthorized - please log in' });
+    console.log('Clean-images: 401 Unauthorized');
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
   }
 
   try {
@@ -254,6 +255,29 @@ app.post('/api/import-initial', upload.single('initialFile'), async (req, res) =
 });
 
 app.post('/api/merge-complete', upload.single('completeFile'), async (req, res) => {
+
+  console.log('Merge-complete: Headers:', req.headers, 'Body:', req.body, 'File:', req.file ? req.file.originalname : 'none');
+  let userId = null;
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.decode(token);
+      userId = decoded.sub;
+      console.log('Merge-complete: Decoded userId:', userId);
+    } catch (err) {
+      console.error('Merge-complete: JWT decode error:', err.message);
+    }
+
+  }
+
+  if (!userId) {
+    console.log('Merge-complete: 401 Unauthorized');
+    return res.status(401).json({ error: 'Unauthorized - please log in' });
+  }
+
   try {
     console.log('Processing /api/merge-complete', req.body, req.file);
     const system = req.body.system;
@@ -268,7 +292,7 @@ app.post('/api/merge-complete', upload.single('completeFile'), async (req, res) 
     if (!req.file) throw new Error('No file uploaded');
     const start = parseInt(req.body.start) || 0;
     const end = parseInt(req.body.end) || undefined;
-    await mergeGames(system, req.file.path, ignoreFields, false, start, end);
+    await mergeGames(system, req.file.path, ignoreFields, false, start, end, userId);
     fs.unlinkSync(req.file.path);
     res.json({ 
       success: true, 
