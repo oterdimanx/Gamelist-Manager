@@ -6,7 +6,7 @@
 }
 
 body {
-background: #1a1a1a url('assets/scanlines2.jpg') repeat;
+  background: #1a1a1a url('assets/scanlines2.jpg') repeat;
   color: #f0f0f0;
   font-family: 'Roboto', sans-serif;
   min-height: 100vh;
@@ -14,6 +14,9 @@ background: #1a1a1a url('assets/scanlines2.jpg') repeat;
   justify-content: center;
   align-items: center;
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* Scanlines (CRT effect) */
@@ -234,4 +237,93 @@ select:focus, input:focus {
   border: 1px solid #ddd; 
   padding: 5px; 
   text-align: left; 
+}
+
+#auth-nav, #menu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: transparent;
+  padding: 10px;
+}
+
+#menu {
+  background: #f0f0f0 url('assets/scanlines3.jpg') repeat;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+#menu a {
+  color: #f0f0f0;
+}
+
+#auth-nav { 
+  margin: 20px; 
+}
+
+#system-select { 
+  margin: 20px; 
+}
+
+#games-list { 
+  margin: 20px; 
+}
+
+.game-item { 
+  margin: 10px 0; border: 1px solid #ddd; padding: 10px; 
+}
+
+.edit-form { 
+  display: none; 
+}
+
+.hidden { 
+  display: none; 
+}
+
+#system-select, #search-input {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 10px;
+}
+
+#games-list .game-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-form input, .edit-form textarea {
+  margin-bottom: 10px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Media Queries for Mobile */
+@media (max-width: 768px) {
+  #auth-nav, #menu {
+    flex-direction: column;
+  }
+
+  #system-select, #search-input {
+    max-width: 100%;
+  }
+
+  .game-item {
+    padding: 10px;
+  }
+
+  button, a {
+    width: 100%;
+    margin-bottom: 10px;
+  }
 }

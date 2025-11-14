@@ -74,11 +74,9 @@ async function loadSystems() {
   }
 }
 
-async function loadGames(system, page = 1) {
+async function loadGames(system, page = 1, search = '') {
   const gamesList = document.getElementById('games-list');
   const actionStatus = document.getElementById('action-status');
-  const searchInput = document.getElementById('search-input');
-  const search = searchInput ? searchInput.value : '';
   const limit = 50;
   try {
     actionStatus.textContent = 'Loading games...';
@@ -96,7 +94,7 @@ async function loadGames(system, page = 1) {
       const total = data.total || 0;
       const pages = Math.ceil(total / limit);
       
-      // Remove existing pagination div (fix for stacking)
+      // Remove existing pagination
       const existingPagination = document.querySelector('.pagination');
       if (existingPagination) existingPagination.remove();
       
@@ -135,6 +133,13 @@ async function loadGames(system, page = 1) {
     console.error('Load games error:', err);
     actionStatus.textContent = 'Error loading games';
   }
+}
+
+function searchGames() {
+  const system = document.getElementById('system-select').value;
+  const searchInput = document.getElementById('search-input');
+  const search = searchInput.value;
+  if (system) loadGames(system, 1, search);
 }
 
 function editGame(id) {

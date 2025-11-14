@@ -7,14 +7,6 @@
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <style>
-      #dashboard-nav { margin: 20px; }
-      #system-select { margin: 20px; }
-      #games-list { margin: 20px; }
-      .game-item { margin: 10px 0; border: 1px solid #ddd; padding: 10px; }
-      .edit-form { display: none; }
-      .hidden { display: none; }
-  </style>
 </head>
 <body>
   <div class="scanlines"></div>
@@ -23,7 +15,7 @@
       <h1>Gamelist Manager Dashboard</h1>
       <p class="subtitle">Manage your Game's MetaDatas</p>
     </header>
-    <div id="dashboard-nav">
+    <div id="auth-nav">
         <button id="logout-btn" onclick="netlifyIdentity.logout()" style="display: none;">Logout</button>
         <div id="menu">
         <a href="/">Home</a>
@@ -31,15 +23,15 @@
         </div>
     </div>
     <main>
-
       <div class="card">
         <div id="action-status" class="status-text"></div>
         <select id="system-select">
             <option value="">Select System</option>
         </select>
+        <input id="search-input" type="text" placeholder="Search by name, publisher, or developer">
+        <button onclick="searchGames()">Search</button>
         <div id="games-list"></div>
       </div>
-
     </main>
   </div>
   <script src="/dashboard.js"></script>
