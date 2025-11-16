@@ -149,8 +149,8 @@ async function postAPI(url, formData, action) {
 }
 
 async function cleanImages() {
-  
-const system = document.getElementById('system').value;
+
+  const system = document.getElementById('system').value;
   if (!system) {
     document.getElementById('action-status').textContent = 'Please select system';
     return;
@@ -159,6 +159,7 @@ const system = document.getElementById('system').value;
     document.getElementById('action-status').textContent = 'Please log in to clean images';
     return;
   }
+
   try {
     document.getElementById('action-status').textContent = 'Cleaning images...';
     

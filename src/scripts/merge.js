@@ -13,7 +13,7 @@ const normalizeName = (name) => {
     .toLowerCase();
 };
 
-const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode = false, start = 0, end) => {
+const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode = false, start = 0, end, userId) => {
   await connectDB();
   // Add index for faster fetches (run once)
   Game.createIndexes({ system: 1, name: 1 });
@@ -30,7 +30,7 @@ const mergeGames = async (system, completeFilePath, ignoreFields = [], cloneMode
   console.log(`Merging ${slicedGames.length} games for ${system} (start: ${start}, end: ${end || completeGames.length})`);
 
   console.time('fetch-existing');
-  const existingGames = await Game.find({ system });
+  const existingGames = await Game.find({ system, userId });
   console.timeEnd('fetch-existing');
 
   let updatedCount = 0;
