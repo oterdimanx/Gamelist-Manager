@@ -565,19 +565,12 @@ select:focus, input:focus {
 
 @media (max-width: 767px) {
 
-  .wave {
-    top: 1464px;
-  }
-
   .footer .content {
     display: flex;
     flex-direction: column;
     font-size: 14px;
   }
 
-  .footer {
-    position: unset;
-  }
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
