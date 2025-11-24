@@ -265,7 +265,7 @@ select:focus, input:focus {
 }
 
 #menu {
-  background: #f0f0f0 url('assets/scanlines3.jpg') repeat;
+  /*background: #f0f0f0 url('assets/scanlines3.jpg') repeat;*/
   width: 100%;
   flex-wrap: wrap;
 }
@@ -553,7 +553,7 @@ select:focus, input:focus {
 @media (min-width: 367px) and (max-width: 766px) {
 
   .wave {
-    height: 150px;
+    height: 225px;
   }
 
   .menu {
@@ -566,7 +566,7 @@ select:focus, input:focus {
 @media (max-width: 767px) {
 
   .wave {
-    top: 1430px;
+    top: 1464px;
   }
 
   .footer .content {
